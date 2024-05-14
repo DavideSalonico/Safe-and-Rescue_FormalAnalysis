@@ -2,7 +2,7 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>// Place global declarations here.
-const int GRID_LENGHT = 5;
+const int GRID_LENGTH = 5;
 const int GRID_HEIGHT = 5;
 const int N_EXITS = 2;
 const int N_FIRES = 1;
@@ -14,11 +14,11 @@ const int T_FR = 3;                      // Time that a First Responder needs to
 const int STEP_TIME = 1;                 // Time to step
 const int T_V = 5;                       // Time before a civilian is supposed to die
 
-const int MAX_TRAJ = GRID_LENGHT*GRID_HEIGHT/N_DRONES;
+const int MAX_TRAJ = GRID_LENGTH*GRID_HEIGHT/N_DRONES;
 
 // Global types
 typedef int [0, N_DRONES-1] bot_t;
-typedef struct { int r, c; } pos_t;
+typedef struct { int r; int c; } pos_t;
 
 // Map constants
 const int NONE         =  0;
@@ -53,22 +53,11 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 1, 1, 1, 0},
 // Global functions
 
 
-// Exits, Humans, Drones can have arbitrary positions.
-pos_t d_pos1;
-d_pos1.r = 1;
-d_pos1.c = 1;
-
-pos_t d_pos2;
-d_pos2.r = 3;
-d_pos2.c = 3;
-
-pos_t c_pos1;
-c_pos1.r = 2;
-c_pos1.c = 2;
-
-pos_t c_pos2;
-c_pos2.r = 4;
-c_pos2.c = 2;
+// Exits, Humans, Drones can have ar    bitrary positions.
+pos_t d_pos1 = {1, 1};
+pos_t d_pos2 = {3, 3};
+pos_t c_pos1 = {2, 2};
+pos_t c_pos2 = {4, 2};
 
 const pos_t DRONE_POS[N_DRONES] = {d_pos1, d_pos2};
 const pos_t CIVILIANS_POS[N_CIVILIANS] = {c_pos1, c_pos2};
@@ -93,7 +82,7 @@ int cell_int(int x, int y) {
  * Check whether a cell of the map is occupied by a bot or not.
  */
 bool cell_is_free(pos_t p) {
-    return cell(p) == FREE;
+    return cell(p) == NONE;
 }
 
 /*
@@ -141,18 +130,24 @@ void enter() {
     //map[pos.r][pos.c] |= B;
 }
 
-// TODO calcola il tempo per assistere + arrivare se è stato contatto
-int timeToAssist() {
+// TODO calcola il tempo per assistere + arrivare se è stato contatto (pos_v è la posizione della persona da salvare)
+int timeToAssist(pos_t pos_v) {
     if (status == NEAR_DANGER) {
         return T_FR;
     } else {
-        return T_FR + TIME TO ARRIVE;  // TODO capire come calcolare TIME TO ARRIVE
+        return T_FR + dist(pos, pos_v); 
     }
 }
 
 // TODO return true if near a person in danger else false
 bool nearCivilianInDanger() {
-
+    int i, j;
+    for(i = -1; i &lt;= 1; i++){
+        for(j = -1; j &lt;= 1; j++){
+            if(cell_int(pos.r + i, pos.c + j) == -1) return true; //TODO: change checking person in danger 
+        }
+    }
+    return false;
 }
 
 void step() {
@@ -228,12 +223,14 @@ const int ZERO_RESP = 4;
 const int ASSISTED = 5;
 
 const int id = p_id;
+clock x;
 pos_t pos;
 int status = 0;
 int timeToAssist = -1;
 
 pos_t getNextCellToGoTo(pos_t &amp;pos1, pos_t &amp;pos2){
     int x_move, y_move;
+    pos_t ret_pos;
     if(pos1.r &gt; pos2.r){
         x_move = 1;
     } 
@@ -254,9 +251,7 @@ pos_t getNextCellToGoTo(pos_t &amp;pos1, pos_t &amp;pos2){
         y_move = -1;
     }
 
-    pos_t ret_pos;
-    ret_pos.r = pos1.r + x_move;
-    ret_pos.c = pos1.c + y_move;
+    pos_t ret_pos = { pos1.r + x_move, pos1.c + y_move };
     return ret_pos;
 }
 
@@ -495,7 +490,7 @@ saved_by_FR?</label>
         }
     }
 
-    pos_t exits[count];
+    pos_t exits[10];
     int idx = 0;
     int i;
     int j;
@@ -548,6 +543,9 @@ int id = p_id;
 pos_t pos;
 pos_t trajectory[MAX_TRAJ];
 
+//TODO: define
+int range;
+
 int status = STEP;
 
 /*
@@ -587,7 +585,7 @@ void decisionPolicy() {
 void step() {
     // TODO Muove il drone
     if (civilianInDangerInRange() &amp;&amp; zeroResponderInRange()) {
-        decisionPolicy()
+        decisionPolicy();
     }
 
 }</declaration>
