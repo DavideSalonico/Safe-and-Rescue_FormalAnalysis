@@ -6,16 +6,16 @@ const int GRID_LENGTH = 10;
 const int GRID_HEIGHT = 10;
 const int N_EXITS = 6;
 const int N_FIRES = 7;
-const int N_DRONES = 4;
+const int N_DRONES = 3;
 const int N_CIVILIANS = 4;
 const int N_FIRST_RESPONDERS = 2;
 const int T_ZR = 3;                      // Time that a Zero Responder needs to help someone
 const int T_FR = 3;                      // Time that a First Responder needs to help someone
 const int STEP_TIME = 1;                 // Time to step
 const int T_V = 5;                       // Time before a civilian is supposed to die
-const int RANGE = 2;                     // Drones' visibility range
+const int RANGE = 0;                     // Drones' visibility range
 
-const int MAX_TRAJ = GRID_LENGTH*GRID_HEIGHT/N_DRONES;
+const int MAX_TRAJ = 2;
 
 // Global types
 typedef int [0, N_DRONES-1] bot_t;
@@ -23,6 +23,7 @@ typedef int[0, N_FIRST_RESPONDERS - 1] fr_t;
 typedef struct { int r; int c; } pos_t;
 
 // Map constants
+const int OUTSIDE      = -1;
 const int NONE         =  0;
 const int EXIT         =  1;             // Exit
 const int FIRE         =  2;             // Fire
@@ -69,7 +70,8 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
 
 pos_t exits[N_EXITS];
 
-pos_t drone_trajectories[3][2] = {{{1, 1}, {2, 2}},{{3, 3}, {4, 4}}, {{5, 5}, {6, 6}}};
+pos_t drone_trajectories[3][MAX_TRAJ] = {{{1, 1}, {2, 2}},{{3, 3}, {4, 4}}, {{5, 5}, {6, 6}}};
+int traj_lengths[N_DRONES] = { 2, 2, 2};
 
 // Global functions
 
@@ -100,7 +102,11 @@ int cell(pos_t p) {
  * Get the value of a cell of the map given its int coordinates.
  */
 int cell_int(int x, int y) {
-    return grid[x][y];
+    if (x &gt;= 0 &amp;&amp; x &lt; GRID_LENGTH &amp;&amp; y &gt;= 0 &amp;&amp; y &lt; GRID_HEIGHT){
+        return grid[x][y];
+    } else {
+        return OUTSIDE;
+    }
 }
 
 /*
@@ -170,8 +176,6 @@ void enter() {
     id = p_id;
     pos.r = 1;
     pos.c = 1;
-    
-    //map[pos.r][pos.c] |= B;
 }
 
 // TODO: calcola il tempo per assistere + arrivare se è stato contatto
@@ -199,8 +203,8 @@ bool nearCivilianInDanger() {
 void step() {
     // Random policy
     bool valid_step_found = false;
+    int i = 0;
     while (valid_step_found == false) {
-        int i = fint(random(8));
         if (i == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r-1, pos.c) == FREE) { // Move down
             grid[pos.r][pos.c] = NONE;
             pos.r++;
@@ -253,6 +257,8 @@ void step() {
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
+
+        i = (i+1) % 2;
     }
 
     if (nearCivilianInDanger()) {
@@ -272,6 +278,7 @@ void updateGrid() {
 		</location>
 		<location id="id1" x="-476" y="-42">
 			<name x="-535" y="-17">Moving</name>
+			<label kind="invariant" x="-527" y="-42">x &lt;= STEP_TIME</label>
 		</location>
 		<location id="id2" x="263" y="-42">
 			<name x="255" y="-76">Helped</name>
@@ -307,8 +314,8 @@ updateGrid()</label>
 		<transition id="id8">
 			<source ref="id1"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-535" y="-178">status == FREE</label>
-			<label kind="assignment" x="-501" y="-161">step()</label>
+			<label kind="guard" x="-535" y="-178">status == FREE &amp;&amp; x == STEP_TIME</label>
+			<label kind="assignment" x="-501" y="-161">step(), x = 0</label>
 			<nail x="-518" y="-127"/>
 			<nail x="-442" y="-127"/>
 		</transition>
@@ -329,14 +336,14 @@ updateGrid()</label>
 		<transition id="id11">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="synchronisation" x="-595" y="-59">init_done?</label>
+			<label kind="synchronisation" x="-602" y="-59">init_done?</label>
 			<label kind="assignment" x="-586" y="-42">enter()</label>
 			<nail x="-493" y="-42"/>
 		</transition>
 	</template>
 	<template>
 		<name>Civilian</name>
-		<parameter>int p_id, pos_t p_pos</parameter>
+		<parameter>int[0, N_CIVILIANS-1] p_id</parameter>
 		<declaration>const int SAVED = 1;
 const int DANGER = 2;
 const int STEP = 3;
@@ -465,9 +472,8 @@ void safeOccurred() {
  */
 void enter() {
     id = p_id;
-    pos = p_pos;
+    //pos = p_pos;
     status = computeStatus(pos.r, pos.c);
-    //map[pos.r][pos.c] |= B;
 }</declaration>
 		<location id="id12" x="-756" y="-85">
 		</location>
@@ -670,17 +676,14 @@ void init_all() {
 	</template>
 	<template>
 		<name x="9" y="9">Drone</name>
-		<parameter>int p_id, int traj_length</parameter>
+		<parameter>int[0, N_DRONES-1] p_id</parameter>
 		<declaration>const int STEP = 1;
 const int ZERO_R = 2;
 const int FIRST_R = 3;
 
-urgent chan call_zero_respond;
-urgent chan call_first_respond;
-
 clock clk;
 int id;
-pos_t trajectory[2];
+pos_t trajectory[MAX_TRAJ];
 int traj_l;
 int k = 0;
 int status = STEP;
@@ -692,9 +695,9 @@ pos_t pos;
 void enter() {
     k = 0;
     id = p_id;
-    trajectory = drone_trajectories[p_id];
+    trajectory = drone_trajectories[id];
     pos = trajectory[k];
-    traj_l = traj_length;
+    traj_l = traj_lengths[id];
 }
 
 
@@ -741,10 +744,8 @@ void decisionPolicy() {
 }
 
 void step() {
-    pos_t tmp_pos;
     k = (k+1 % traj_l);
-    tmp_pos = trajectory[k];
-    pos = tmp_pos;
+    pos = trajectory[k];
     if (civilianInDangerInRange() != OUT_OF_MAP &amp;&amp; zeroResponderInRange() != OUT_OF_MAP) {
         decisionPolicy();
     }
@@ -805,10 +806,10 @@ void step() {
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
-initializer = Initializer();
+//initializer = Initializer();
 
 // List one or more processes to be composed into a system.
-system initializer /*, Drone, Civilian*/, First_Responder;
+system Initializer, First_Responder; /*, Drone, Civilian, First_Responder;*/
 </system>
 	<queries>
 		<query>
