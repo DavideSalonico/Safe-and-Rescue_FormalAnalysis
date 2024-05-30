@@ -18,8 +18,9 @@ const int RANGE = 0;                     // Drones' visibility range
 const int MAX_TRAJ = 2;
 
 // Global types
-typedef int [0, N_DRONES-1] bot_t;
-typedef int[0, N_FIRST_RESPONDERS - 1] fr_t;
+typedef int [0, N_DRONES-1] dr_t;
+typedef int [0, N_FIRST_RESPONDERS-1] fr_t;
+typedef int [0, N_CIVILIANS-1] civ_t;
 typedef struct { int r; int c; } pos_t;
 
 // Map constants
@@ -39,7 +40,7 @@ const pos_t OUT_OF_MAP = {-1, -1};       // Position to declare someone has exit
 const int MAX_INT =  32767; //from doc
 
 // Channels
-urgent broadcast chan init_done;
+broadcast chan init_done;
 urgent broadcast chan civilian_saved;
 urgent broadcast chan helping;
 urgent broadcast chan FR_help_req;
@@ -58,8 +59,8 @@ int saved = 0;
 
 // Grid layout
 int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
-                                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                                      {0, 0, 0, 0, 0, 0, 2, 2, 0, 0},
+                                      {0, 4, 0, 0, 0, 0, 0, 0, 0, 0},
+                                      {0, 0, 0, 0, 0, 4, 2, 2, 0, 0},
                                       {0, 0, 0, 0, 0, 2, 2, 2, 0, 0},
                                       {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
                                       {1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -69,6 +70,7 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 0, 0, 0, 0, 0},
                                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
 pos_t exits[N_EXITS];
+pos_t pos_FRs[N_FIRST_RESPONDERS];
 
 pos_t drone_trajectories[3][MAX_TRAJ] = {{{1, 1}, {2, 2}},{{3, 3}, {4, 4}}, {{5, 5}, {6, 6}}};
 int traj_lengths[N_DRONES] = { 2, 2, 2};
@@ -159,7 +161,7 @@ void move_fr(pos_t src, pos_t dest){
 }</declaration>
 	<template>
 		<name>First_Responder</name>
-		<parameter>int[0, N_FIRST_RESPONDERS - 1] p_id</parameter>
+		<parameter>fr_t p_id</parameter>
 		<declaration>const int FREE = 0;
 const int NEAR_DANGER = 1;
 const int CALLED = 2;
@@ -168,22 +170,23 @@ clock x;
 int id;
 pos_t pos;
 int status = FREE;
+int time_to_assist = -1; 
+int step_dir = 0;
 
 /*
  * Enter the map at the entry point.
  */
 void enter() {
     id = p_id;
-    pos.r = 1;
-    pos.c = 1;
+    pos.r = pos_FRs[id].r;
+    pos.c = pos_FRs[id].c;
 }
 
-// TODO: calcola il tempo per assistere + arrivare se è stato contatto
-int timeToAssist() {
+void timeToAssist() {
     if (status == NEAR_DANGER) {
-        return T_FR;
+        time_to_assist = T_FR;
     } else {
-        return T_FR + 0;//TIME_TO_ARRIVE;  // TODO: capire come calcolare TIME TO ARRIVE
+        time_to_assist = T_FR + 0; //dist(pos, goal_pos);  // TODO: capire come calcolare TIME TO ARRIVE
     }
 }
 
@@ -203,62 +206,64 @@ bool nearCivilianInDanger() {
 void step() {
     // Random policy
     bool valid_step_found = false;
-    int i = 0;
-    while (valid_step_found == false) {
-        if (i == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r-1, pos.c) == FREE) { // Move down
+    int tries = 0;
+    while (valid_step_found == false &amp;&amp; tries &lt; 8) {
+        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == FREE) { // Move down
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c) == FREE) { // Move up
+        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == FREE) { // Move up
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == FREE) { // Move left
+        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == FREE) { // Move left
             grid[pos.r][pos.c] = NONE;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == FREE) { // Move right
+        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == FREE) { // Move right
             grid[pos.r][pos.c] = NONE;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == FREE) { // Move down-left
+        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == FREE) { // Move down-left
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == FREE) { // Move down-right
+        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == FREE) { // Move down-right
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == FREE) { // Move up-left
+        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == FREE) { // Move up-left
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (i == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == FREE) { // Move up-right
+        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == FREE) { // Move up-right
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-
-        i = (i+1) % 2;
+        step_dir = (step_dir+1) % 2;
+        if (valid_step_found == false) {
+            tries++;
+        }
     }
 
     if (nearCivilianInDanger()) {
@@ -274,19 +279,20 @@ void updateGrid() {
         grid[pos.r][pos.c] = FIRST_R;
     }
 }</declaration>
-		<location id="id0" x="-620" y="-42">
+		<location id="id0" x="-714" y="-42">
 		</location>
 		<location id="id1" x="-476" y="-42">
-			<name x="-535" y="-17">Moving</name>
-			<label kind="invariant" x="-527" y="-42">x &lt;= STEP_TIME</label>
+			<name x="-544" y="-34">Moving</name>
+			<label kind="invariant" x="-603" y="-17">x &lt;= STEP_TIME</label>
 		</location>
 		<location id="id2" x="263" y="-42">
 			<name x="255" y="-76">Helped</name>
 		</location>
-		<location id="id3" x="0" y="-42">
-			<name x="-25" y="-85">Helping</name>
+		<location id="id3" x="8" y="-42">
+			<name x="-17" y="-85">Helping</name>
+			<label kind="invariant" x="-34" y="-25">x &lt;= time_to_assist</label>
 		</location>
-		<location id="id4" x="-238" y="-42">
+		<location id="id4" x="-229" y="-42">
 			<committed/>
 		</location>
 		<init ref="id0"/>
@@ -294,7 +300,8 @@ void updateGrid() {
 			<source ref="id4"/>
 			<target ref="id3"/>
 			<label kind="synchronisation" x="-170" y="-59">helping!</label>
-			<label kind="assignment" x="-153" y="-42">x=0</label>
+			<label kind="assignment" x="-170" y="-42">x=0, 
+timeToAssist()</label>
 		</transition>
 		<transition id="id6">
 			<source ref="id1"/>
@@ -306,44 +313,45 @@ updateGrid()</label>
 		<transition id="id7">
 			<source ref="id1"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-323" y="-195">status == NEAR_DANGER</label>
-			<label kind="synchronisation" x="-272" y="-178">helping!</label>
-			<label kind="assignment" x="-263" y="-161">x = 0</label>
-			<nail x="-238" y="-136"/>
+			<label kind="guard" x="-306" y="-187">status == NEAR_DANGER</label>
+			<label kind="synchronisation" x="-255" y="-170">helping!</label>
+			<label kind="assignment" x="-298" y="-153">x=0, timeToAssist()</label>
+			<nail x="-229" y="-127"/>
 		</transition>
 		<transition id="id8">
 			<source ref="id1"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-535" y="-178">status == FREE &amp;&amp; x == STEP_TIME</label>
-			<label kind="assignment" x="-501" y="-161">step(), x = 0</label>
+			<label kind="guard" x="-612" y="-170">status == FREE &amp;&amp; x == STEP_TIME</label>
+			<label kind="assignment" x="-535" y="-153">step(), x = 0</label>
 			<nail x="-518" y="-127"/>
 			<nail x="-442" y="-127"/>
 		</transition>
 		<transition id="id9">
 			<source ref="id3"/>
 			<target ref="id2"/>
-			<label kind="guard" x="59" y="-68">x &gt;= timeToAssist()</label>
+			<label kind="guard" x="59" y="-68">x &gt;= time_to_assist</label>
 		</transition>
 		<transition id="id10">
 			<source ref="id2"/>
 			<target ref="id1"/>
-			<label kind="synchronisation" x="-161" y="17">saved_by_FR!</label>
-			<label kind="assignment" x="-161" y="51">status = FREE,
-updateGrid()</label>
+			<label kind="synchronisation" x="-161" y="25">saved_by_FR!</label>
+			<label kind="assignment" x="-161" y="42">status = FREE,
+updateGrid(),
+time_to_assist = -1</label>
 			<nail x="263" y="43"/>
 			<nail x="-476" y="43"/>
 		</transition>
 		<transition id="id11">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="synchronisation" x="-602" y="-59">init_done?</label>
-			<label kind="assignment" x="-586" y="-42">enter()</label>
+			<label kind="synchronisation" x="-688" y="-59">init_done?</label>
+			<label kind="assignment" x="-672" y="-42">enter()</label>
 			<nail x="-493" y="-42"/>
 		</transition>
 	</template>
 	<template>
 		<name>Civilian</name>
-		<parameter>int[0, N_CIVILIANS-1] p_id</parameter>
+		<parameter>civ_t p_id</parameter>
 		<declaration>const int SAVED = 1;
 const int DANGER = 2;
 const int STEP = 3;
@@ -645,7 +653,7 @@ a zero dallo stato committed</label>
 	</template>
 	<template>
 		<name>Initializer</name>
-		<declaration>void build_exits(){
+		<declaration>void build_exits() {
     int i, j, idx = 0;
     for(i=0; i &lt; GRID_LENGTH; i++){
         for(j=0; j &lt; GRID_HEIGHT; j++){
@@ -658,8 +666,22 @@ a zero dallo stato committed</label>
     }
 }
 
+void set_FR_pos() {
+    int i, j, idx = 0;
+    for(i=0; i &lt; GRID_LENGTH; i++){
+        for(j=0; j &lt; GRID_HEIGHT; j++){
+            if(cell_int(i, j) == FIRST_R){
+                pos_FRs[idx].r = i;
+                pos_FRs[idx].c = j;
+                idx++;
+            }
+        }
+    }
+}
+
 void init_all() {
     build_exits();
+    set_FR_pos();
 }</declaration>
 		<location id="id41" x="-357" y="-76">
 			<committed/>
@@ -676,7 +698,7 @@ void init_all() {
 	</template>
 	<template>
 		<name x="9" y="9">Drone</name>
-		<parameter>int[0, N_DRONES-1] p_id</parameter>
+		<parameter>dr_t p_id</parameter>
 		<declaration>const int STEP = 1;
 const int ZERO_R = 2;
 const int FIRST_R = 3;
