@@ -191,7 +191,7 @@ void timeToAssist() {
     if (status == NEAR_DANGER) {
         time_to_assist = T_FR;
     } else {
-        time_to_assist = T_FR + 0; //dist(pos, goal_pos);  // TODO: capire come calcolare TIME TO ARRIVE
+        time_to_assist = T_FR + 2; //dist(pos, goal_pos);  // TODO: capire come calcolare TIME TO ARRIVE
     }
 }
 
@@ -206,7 +206,10 @@ bool nearCivilianInDanger() {
     return false;
 }
 
-
+// Serve?
+void update_FR_pos() {
+    pos_FRs[id] = pos;
+}
 
 void step() {
     // Random policy
@@ -270,13 +273,15 @@ void step() {
             tries++;
         }
     }
-
+    // TODO: capire se serve aggiungere un metodo che modifichi l'array delle posizioni
+    update_FR_pos();
+    
     if (nearCivilianInDanger()) {
         status = NEAR_DANGER;
     }
 }
 
-// TODO capire come gestire la precenza tra near danger e la ricezione della richiesta di aiuto
+// TODO capire come gestire la precenza tra near danger e la ricezione della richiesta di aiuto: dovrebbe essere l'ordine di dichiarazione dei chan
 void updateGrid() {
     if (grid[pos.r][pos.c] == FIRST_R) {
         grid[pos.r][pos.c] = FIRST_R_BUSY;
@@ -318,9 +323,10 @@ updateGrid()</label>
 		<transition id="id7">
 			<source ref="id1"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-306" y="-187">status == NEAR_DANGER</label>
-			<label kind="synchronisation" x="-255" y="-170">helping!</label>
-			<label kind="assignment" x="-298" y="-153">x=0, timeToAssist()</label>
+			<label kind="guard" x="-306" y="-204">status == NEAR_DANGER</label>
+			<label kind="synchronisation" x="-255" y="-187">helping!</label>
+			<label kind="assignment" x="-306" y="-170">x=0, timeToAssist(),
+updateGrid()</label>
 			<nail x="-229" y="-127"/>
 		</transition>
 		<transition id="id8">
