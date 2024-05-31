@@ -79,7 +79,8 @@ int traj_lengths[N_DRONES] = { 2, 2, 2};
 
 
 // Exits, Humans, Drones can have arbitrary positions.
-pos_t pos_to_save = {-1, -1};
+pos_t pos_to_save = OUT_OF_MAP;
+pos_t pos_rescuer = OUT_OF_MAP;
 
 /*
 pos_t d_pos1 = {1, 1};
@@ -97,7 +98,11 @@ const pos_t CIVILIANS_POS[N_CIVILIANS] = {c_pos1, c_pos2};
  * Get the value of a cell of the map given its pos_t coordinates.
  */
 int cell(pos_t p) {
-    return grid[p.r][p.c];
+    if (p.r &gt;= 0 &amp;&amp; p.r &lt; GRID_LENGTH &amp;&amp; p.c &gt;= 0 &amp;&amp; p.c &lt; GRID_HEIGHT){
+        return grid[p.r][p.c];
+    } else {
+        return OUTSIDE;
+    }
 }
 
 /*
@@ -679,9 +684,27 @@ void set_FR_pos() {
     }
 }
 
+void compute_traj_lengths(){
+    int i, j;
+    pos_t init_pos, curr_pos;
+    for(i = 0; i &lt; N_DRONES; i++){
+        init_pos = drone_trajectories[i][0];
+        curr_pos = drone_trajectories[i][1];
+        for(j = 1; j &lt; MAX_TRAJ; j++){
+            if(curr_pos == init_pos){
+                traj_lengths[i] = j;
+                j = MAX_TRAJ; // break
+            } else {
+                curr_pos = drone_trajectories[i][j];  
+            }
+        }
+    }
+}
+
 void init_all() {
     build_exits();
     set_FR_pos();
+    compute_traj_lengths();
 }</declaration>
 		<location id="id41" x="-357" y="-76">
 			<committed/>
@@ -715,16 +738,14 @@ pos_t pos;
  * Enter the map at the entry point.
  */
 void enter() {
-    k = 0;
     id = p_id;
     trajectory = drone_trajectories[id];
     pos = trajectory[k];
+    k = 0;
     traj_l = traj_lengths[id];
 }
 
-
-// The following two methods should be updated in order to return the exact location of the located entity so that the distance is faster to compute
-pos_t civilianInDangerInRange(){
+void civilianInDangerInRange(){
     int i, j;
     pos_t ret_pos = {-1, -1};
     for(i = -RANGE; i &lt;= RANGE; i++){
@@ -732,15 +753,14 @@ pos_t civilianInDangerInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == NEED_ASSIST){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
-                return ret_pos;
+                pos_to_save = ret_pos;
             }
            
         }
     }
-    return ret_pos;
 }
 
-pos_t zeroResponderInRange(){
+void zeroResponderInRange(){
     int i, j;
     pos_t ret_pos = {-1, -1};
     for(i = -RANGE; i &lt;= RANGE; i++){
@@ -748,11 +768,10 @@ pos_t zeroResponderInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == ZERO_R){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
-                return ret_pos;
+                pos_rescuer = ret_pos;
             }
         }
     }
-    return ret_pos;
 }
 
 void decisionPolicy() {
@@ -765,10 +784,12 @@ void decisionPolicy() {
     }
 }
 
+// Change it in order to properly set the pos_to_save and the pos_rescuer
 void step() {
     k = (k+1 % traj_l);
     pos = trajectory[k];
-    if (civilianInDangerInRange() != OUT_OF_MAP &amp;&amp; zeroResponderInRange() != OUT_OF_MAP) {
+    //if (civilianInDangerInRange() &amp;&amp; zeroResponderInRange()) { TODO: properly set it
+    if(true){
         decisionPolicy();
     }
 }</declaration>
