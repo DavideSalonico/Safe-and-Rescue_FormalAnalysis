@@ -302,7 +302,7 @@ void updateGrid() {
 		</location>
 		<location id="id2" x="8" y="-42">
 			<name x="-17" y="-85">Helping</name>
-			<label kind="invariant" x="-34" y="-25">x &lt;= time_to_assist</label>
+			<label kind="invariant" x="25" y="-42">x &lt;= time_to_assist</label>
 		</location>
 		<location id="id3" x="-229" y="-42">
 			<committed/>
@@ -311,13 +311,13 @@ void updateGrid() {
 		<transition id="id4">
 			<source ref="id2"/>
 			<target ref="id1"/>
-			<label kind="synchronisation" x="-348" y="-340">civ_dead[civ_id]?</label>
-			<label kind="assignment" x="-348" y="-314">status = FREE,
+			<label kind="synchronisation" x="-306" y="212">civ_dead[civ_id]?</label>
+			<label kind="assignment" x="-306" y="238">status = FREE,
 updateGrid(),
 time_to_assist = -1,
 x = 0</label>
-			<nail x="144" y="-263"/>
-			<nail x="-722" y="-238"/>
+			<nail x="8" y="238"/>
+			<nail x="-476" y="238"/>
 		</transition>
 		<transition id="id5">
 			<source ref="id3"/>
@@ -353,15 +353,14 @@ updateGrid()</label>
 		<transition id="id9">
 			<source ref="id2"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-170" y="127">x == time_to_assist</label>
-			<label kind="synchronisation" x="-169" y="143">saved_by_FR[civ_id]!</label>
-			<label kind="assignment" x="-169" y="160">status = FREE,
+			<label kind="guard" x="-306" y="51">x == time_to_assist</label>
+			<label kind="synchronisation" x="-306" y="68">saved_by_FR[civ_id]!</label>
+			<label kind="assignment" x="-306" y="93">status = FREE,
 updateGrid(),
 time_to_assist = -1,
 x = 0</label>
-			<nail x="238" y="-34"/>
-			<nail x="255" y="161"/>
-			<nail x="-484" y="161"/>
+			<nail x="8" y="93"/>
+			<nail x="-476" y="93"/>
 		</transition>
 		<transition id="id10">
 			<source ref="id0"/>
@@ -527,13 +526,13 @@ void enter() {
 			<name x="-127" y="-110">Danger</name>
 			<label kind="invariant" x="-119" y="-93">x&lt;=T_V</label>
 		</location>
-		<location id="id13" x="-144" y="195">
-			<name x="-195" y="195">Safe</name>
+		<location id="id13" x="-144" y="212">
+			<name x="-195" y="212">Safe</name>
 		</location>
 		<location id="id14" x="-144" y="-255">
 			<name x="-221" y="-255">Moving</name>
 			<label kind="invariant" x="-255" y="-238">x&lt;=STEP_TIME</label>
-			<label kind="comments" x="-646" y="-382">Controllare se il clock viene inizializzato
+			<label kind="comments" x="-739" y="-467">Controllare se il clock viene inizializzato
 a zero dallo stato committed</label>
 		</location>
 		<location id="id15" x="306" y="-255">
@@ -544,8 +543,8 @@ a zero dallo stato committed</label>
 		<location id="id16" x="-442" y="-85">
 			<committed/>
 		</location>
-		<location id="id17" x="-348" y="59">
-			<name x="-357" y="25">Dead</name>
+		<location id="id17" x="-340" y="59">
+			<name x="-349" y="25">Dead</name>
 		</location>
 		<location id="id18" x="527" y="-433">
 			<name x="544" y="-450">Contacting</name>
@@ -561,8 +560,8 @@ a zero dallo stato committed</label>
 		<transition id="id21">
 			<source ref="id19"/>
 			<target ref="id13"/>
-			<label kind="synchronisation" x="-280" y="153">saved_by_FR[id]?</label>
-			<label kind="assignment" x="-272" y="170">safeOccurred()</label>
+			<label kind="synchronisation" x="-306" y="153">saved_by_FR[id]?</label>
+			<label kind="assignment" x="-297" y="170">safeOccurred()</label>
 			<nail x="-178" y="136"/>
 		</transition>
 		<transition id="id22">
@@ -580,8 +579,8 @@ a zero dallo stato committed</label>
 			<source ref="id19"/>
 			<target ref="id17"/>
 			<label kind="guard" x="-272" y="59">x==T_V</label>
-			<label kind="synchronisation" x="-280" y="76">civ_dead[id]!</label>
-			<label kind="assignment" x="-323" y="93">casualtyOccurred()</label>
+			<label kind="synchronisation" x="-306" y="76">civ_dead[id]!</label>
+			<label kind="assignment" x="-331" y="93">casualtyOccurred()</label>
 		</transition>
 		<transition id="id25">
 			<source ref="id12"/>
@@ -603,7 +602,7 @@ a zero dallo stato committed</label>
 			<label kind="synchronisation" x="535" y="68">saved_by_FR[id]?</label>
 			<label kind="assignment" x="535" y="93">safeOccurred()</label>
 			<nail x="527" y="136"/>
-			<nail x="527" y="195"/>
+			<nail x="527" y="212"/>
 		</transition>
 		<transition id="id28">
 			<source ref="id14"/>
@@ -622,9 +621,9 @@ a zero dallo stato committed</label>
 		<transition id="id30">
 			<source ref="id12"/>
 			<target ref="id17"/>
-			<label kind="guard" x="-323" y="-42">x==T_V</label>
-			<label kind="synchronisation" x="-348" y="-25">civ_dead[id]!</label>
-			<label kind="assignment" x="-425" y="-8">casualtyOccurred()</label>
+			<label kind="guard" x="-323" y="-51">x==T_V</label>
+			<label kind="synchronisation" x="-365" y="-34">civ_dead[id]!</label>
+			<label kind="assignment" x="-416" y="-17">casualtyOccurred()</label>
 		</transition>
 		<transition id="id31">
 			<source ref="id15"/>
@@ -632,14 +631,14 @@ a zero dallo stato committed</label>
 			<label kind="guard" x="314" y="-34">x==timeToAssist</label>
 			<label kind="synchronisation" x="314" y="-8">saved_by_ZR!</label>
 			<label kind="assignment" x="314" y="17">safeOccurred()</label>
-			<nail x="306" y="195"/>
+			<nail x="306" y="212"/>
 		</transition>
 		<transition id="id32">
 			<source ref="id16"/>
 			<target ref="id13"/>
 			<label kind="guard" x="-578" y="34">status == SAVED</label>
 			<label kind="assignment" x="-569" y="59">safeOccurred()</label>
-			<nail x="-442" y="195"/>
+			<nail x="-442" y="212"/>
 		</transition>
 		<transition id="id33">
 			<source ref="id16"/>
@@ -667,14 +666,12 @@ a zero dallo stato committed</label>
 		<transition id="id37">
 			<source ref="id14"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-323" y="-442">x==STEP_TIME &amp;&amp; status == STEP</label>
-			<label kind="assignment" x="-263" y="-425">step(), x=0</label>
-			<nail x="-204" y="-340"/>
-			<nail x="-204" y="-391"/>
-			<nail x="-144" y="-391"/>
-			<nail x="-144" y="-331"/>
-			<nail x="-144" y="-331"/>
-			<nail x="-144" y="-331"/>
+			<label kind="guard" x="-246" y="-434">x==STEP_TIME &amp;&amp; 
+status == STEP</label>
+			<label kind="assignment" x="-238" y="-391">step(), x=0</label>
+			<nail x="-221" y="-332"/>
+			<nail x="-221" y="-366"/>
+			<nail x="-144" y="-366"/>
 		</transition>
 		<transition id="id38">
 			<source ref="id14"/>
@@ -682,13 +679,13 @@ a zero dallo stato committed</label>
 			<label kind="guard" x="93" y="-68">status == SAVED</label>
 			<label kind="assignment" x="93" y="-42">safeOccurred()</label>
 			<nail x="85" y="-85"/>
-			<nail x="85" y="195"/>
+			<nail x="85" y="212"/>
 		</transition>
 		<transition id="id39">
 			<source ref="id19"/>
 			<target ref="id13"/>
-			<label kind="synchronisation" x="-102" y="153">saved_by_ZR?</label>
-			<label kind="assignment" x="-110" y="170">safeOccurred()</label>
+			<label kind="synchronisation" x="-110" y="153">saved_by_ZR?</label>
+			<label kind="assignment" x="-119" y="170">safeOccurred()</label>
 			<nail x="-110" y="136"/>
 		</transition>
 	</template>
@@ -863,8 +860,8 @@ void step() {
 		<location id="id43" x="-1045" y="-76">
 		</location>
 		<location id="id44" x="-765" y="-76">
-			<name x="-850" y="-68">Moving</name>
-			<label kind="invariant" x="-816" y="-51">x &lt;= STEP_TIME</label>
+			<name x="-833" y="-102">Moving</name>
+			<label kind="invariant" x="-901" y="-68">x &lt;= STEP_TIME</label>
 		</location>
 		<location id="id45" x="-765" y="-246">
 			<name x="-816" y="-280">ZeroRespFound</name>
@@ -879,7 +876,7 @@ void step() {
 			<source ref="id44"/>
 			<target ref="id44"/>
 			<label kind="guard" x="-663" y="-93">status == STEP &amp;&amp; x == STEP_TIME</label>
-			<label kind="assignment" x="-629" y="-76">step(), x = 0</label>
+			<label kind="assignment" x="-595" y="-76">step(), x = 0</label>
 			<nail x="-671" y="-110"/>
 			<nail x="-671" y="-42"/>
 		</transition>
@@ -899,7 +896,7 @@ void step() {
 			<source ref="id46"/>
 			<target ref="id44"/>
 			<label kind="synchronisation" x="-714" y="-8">call_first_resp[zr]!</label>
-			<label kind="assignment" x="-705" y="8">status = STEP</label>
+			<label kind="assignment" x="-697" y="8">status = STEP</label>
 			<nail x="-722" y="9"/>
 		</transition>
 		<transition id="id51">
