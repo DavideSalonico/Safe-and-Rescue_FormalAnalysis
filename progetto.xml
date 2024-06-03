@@ -306,10 +306,10 @@ void updateGrid() {
 			<source ref="id2"/>
 			<target ref="id1"/>
 			<label kind="synchronisation" x="-365" y="-340">civ_dead[civ_id]?</label>
-			<label kind="assignment" x="-357" y="-323">status = FREE,
+			<label kind="assignment" x="-357" y="-323">x = 0,
+status = FREE,
 updateGrid(),
-time_to_assist = -1,
-x = 0</label>
+time_to_assist = -1</label>
 			<nail x="8" y="-246"/>
 			<nail x="-476" y="-246"/>
 		</transition>
@@ -326,7 +326,8 @@ timeToAssist()</label>
 			<label kind="synchronisation" x="-408" y="-59">FR_help_req[id]?</label>
 			<label kind="assignment" x="-416" y="-42">status=CALLED,
 updateGrid(),
-civ_id = get_civ_idx(pos_to_save)</label>
+civ_id = get_civ_idx(pos_to_save),
+pos_to_save = OUT_OF_MAP</label>
 		</transition>
 		<transition id="id7">
 			<source ref="id1"/>
@@ -334,7 +335,8 @@ civ_id = get_civ_idx(pos_to_save)</label>
 			<label kind="guard" x="-306" y="-204">status == NEAR_DANGER</label>
 			<label kind="synchronisation" x="-297" y="-187">helping[civ_id]!</label>
 			<label kind="assignment" x="-306" y="-170">x=0, timeToAssist(),
-updateGrid()</label>
+updateGrid(),
+pos_to_save = OUT_OF_MAP</label>
 			<nail x="-229" y="-127"/>
 		</transition>
 		<transition id="id8">
@@ -384,6 +386,11 @@ int timeToAssist = -1;
 
 int civ_need_id;
 int fr_id;
+
+/*
+ * Golden rule to check:
+ * for every transition check clock update (if necessary), internal status update, grid update
+ */
 
 // TODO: clean pos_to_save
 // TODO: occhio alla direzione verso le uscite
@@ -521,9 +528,11 @@ void getCivInNeed(){
 }
 
 void zrOccurred(){
+    x = 0;
     computeTimeToAssist();
     status = ZERO_RESP;
-    grid[pos.r][pos.c] = ZERO_R;    
+    grid[pos.r][pos.c] = ZERO_R;
+    pos_to_save = OUT_OF_MAP;
 }
 
 
@@ -544,6 +553,17 @@ void frOccurred(){
     civ_need_id = get_civ_idx(pos_to_save);
     status = CONTACTING;
     grid[pos.r][pos.c] = CONTACTING; 
+}
+
+void helpingOccurred(){
+    status = ASSISTED;
+    grid[pos.r][pos.c] = ASSISTED;
+}
+
+void extCasualtyOccurred(){
+    x=0;
+    status = STEP;
+    grid[pos.r][pos.c] = 3;
 }</declaration>
 		<location id="id11" x="-756" y="-85">
 		</location>
@@ -580,14 +600,14 @@ a zero dallo stato committed</label>
 		<location id="id20" x="68" y="-255">
 			<committed/>
 		</location>
-		<location id="id21" x="382" y="-433">
+		<location id="id21" x="306" y="-433">
 			<committed/>
 		</location>
 		<init ref="id11"/>
 		<transition id="id22">
 			<source ref="id21"/>
 			<target ref="id18"/>
-			<label kind="synchronisation" x="374" y="-467">FR_help_req[fr_id]!</label>
+			<label kind="synchronisation" x="340" y="-459">FR_help_req[fr_id]!</label>
 		</transition>
 		<transition id="id23">
 			<source ref="id19"/>
@@ -600,8 +620,7 @@ a zero dallo stato committed</label>
 			<source ref="id20"/>
 			<target ref="id15"/>
 			<label kind="synchronisation" x="102" y="-280">helping[civ_need_id]!</label>
-			<label kind="assignment" x="102" y="-255">x=0,  
-zrOccurred()</label>
+			<label kind="assignment" x="102" y="-255">zrOccurred()</label>
 		</transition>
 		<transition id="id25">
 			<source ref="id14"/>
@@ -620,15 +639,13 @@ zrOccurred()</label>
 			<source ref="id12"/>
 			<target ref="id19"/>
 			<label kind="synchronisation" x="-102" y="-42">helping[id]?</label>
-			<label kind="assignment" x="-136" y="-25">status = ASSISTED, 
-grid[pos.r][pos.c] = ASSISTED</label>
+			<label kind="assignment" x="-136" y="-25">helpingOccurred()</label>
 		</transition>
 		<transition id="id28">
 			<source ref="id18"/>
 			<target ref="id14"/>
 			<label kind="synchronisation" x="93" y="-552">civ_dead[civ_need_id]?</label>
-			<label kind="assignment" x="119" y="-527">x=0, 
-status = STEP</label>
+			<label kind="assignment" x="119" y="-527">extCasualtyOccurred()</label>
 			<nail x="527" y="-526"/>
 			<nail x="-59" y="-526"/>
 		</transition>
@@ -644,16 +661,14 @@ status = STEP</label>
 			<source ref="id14"/>
 			<target ref="id21"/>
 			<label kind="synchronisation" x="93" y="-459">call_first_resp[id]?</label>
-			<label kind="assignment" x="93" y="-433">status = CONTACTING,
-frOccurred()</label>
+			<label kind="assignment" x="93" y="-433">frOccurred()</label>
 			<nail x="-34" y="-433"/>
 		</transition>
 		<transition id="id31">
 			<source ref="id15"/>
 			<target ref="id14"/>
 			<label kind="synchronisation" x="127" y="-374">civ_dead[civ_need_id]?</label>
-			<label kind="assignment" x="136" y="-348">x=0, 
-status = STEP</label>
+			<label kind="assignment" x="127" y="-348">extCasualtyOccurred()</label>
 			<nail x="306" y="-348"/>
 			<nail x="93" y="-348"/>
 		</transition>
@@ -881,7 +896,7 @@ void decisionPolicy() {
 
 // TODO: Change it in order to properly set the pos_to_save
 void step() {
-    int decision, id_zr, i;
+    int decision, i;
     pos_t civ_in_danger, potential_zr;
 
     // Do one step along the trajectory
@@ -893,9 +908,7 @@ void step() {
     potential_zr = zeroResponderInRange();
 
     // Find id of the civilian to call (either as a zr either to call a fr)
-    i = get_civ_idx(potential_zr);
-    id_zr = i;
-    zr = i;
+    zr = get_civ_idx(potential_zr);
     if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
         pos_to_save = civ_in_danger;
         decisionPolicy();
@@ -957,11 +970,7 @@ void step() {
 			<label kind="assignment" x="-1003" y="-76">enter()</label>
 		</transition>
 	</template>
-	<system>// Place template instantiations here.
-//initializer = Initializer();
-
-// List one or more processes to be composed into a system.
-system Initializer, First_Responder, Civilian, Drone;
+	<system>system Initializer, First_Responder, Civilian, Drone;
 </system>
 	<queries>
 		<query>
