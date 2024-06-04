@@ -73,9 +73,9 @@ pos_t pos_civilians[N_CIVILIANS];
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {{{4, 6}, {3, 6}, {3, 5}, {4, 5}, {4, 6}, {3, 6}, {3, 5}, {4, 5}},
                                                 {{6, 3}, {6, 4}, {6, 5}, {5, 5}, {5, 4}, {4, 4}, OUT_OF_MAP, OUT_OF_MAP}};
 pos_t fr_trajectories[N_FIRST_RESPONDERS][MAX_TRAJ] = {{{1, 8}, {1, 7}, {2, 7}, {3, 7}, {3, 6}, {3, 5}, {3, 4}, {2, 4}},
-                                                       {{4, 2}, {4, 1}, {4, 0}, {3, 0}, {2, 0}, {1, 0}, {0, 0}, {0, 1}}};
+                                                       {{4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 0}, {2, 0}, {1, 0}, {0, 0}}};
 int drone_traj_lengths[N_DRONES] = {4, 6};
-int fr_traj_lenghts[N_FIRST_RESPONDERS] = { 8 , 4 };
+int fr_traj_lenghts[N_FIRST_RESPONDERS] = { 8 , 4 };  
 
 // Exits, Humans, Drones can have arbitrary positions.
 pos_t pos_to_save = OUT_OF_MAP;
@@ -361,12 +361,15 @@ void updateGrid() {
 // TODO: Change it in order to properly set the pos_to_save
 void step() {
     k = (k+1) % traj_l;
-    grid[pos.r][pos.c] = NONE;
     if(isCellFree(trajectory[k])){
+        grid[pos.r][pos.c] = NONE;
         pos = trajectory[k];
-        grid[pos.r][pos.c] = FIRST_R;    
+        grid[pos.r][pos.c] = FIRST_R;   
     } else {
         k = k - 1;
+    }
+    if (nearCivilianInDanger()) {
+        status = NEAR_DANGER;
     }
 }</declaration>
 		<location id="id0" x="-714" y="-42">
