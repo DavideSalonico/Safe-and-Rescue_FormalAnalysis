@@ -9,10 +9,10 @@ const int N_FIRES = 15;
 const int N_DRONES = 2;
 const int N_CIVILIANS = 6;
 const int N_FIRST_RESPONDERS = 2;
-const int T_ZR = 3;                      // Time that a Zero Responder needs to help someone
+const int T_ZR = 4;                      // Time that a Zero Responder needs to help someone
 const int T_FR = 3;                      // Time that a First Responder needs to help someone
 const int STEP_TIME = 1;                 // Time to step
-const int T_V = 16;                       // Time before a civilian is supposed to die
+const int T_V = 10;                       // Time before a civilian is supposed to die
 const int RANGE = 2;                     // Drones' visibility range
 const int MAX_TRAJ = 8;                  // Max trajectory length
 
@@ -41,7 +41,7 @@ const int MAX_INT =  32767; //from doc
 
 // Channels
 broadcast chan init_done;
-urgent chan helping[N_CIVILIANS];
+chan helping[N_CIVILIANS];
 urgent chan FR_help_req[N_FIRST_RESPONDERS];
 broadcast chan saved_by_FR[N_CIVILIANS];
 broadcast chan saved_by_ZR[N_CIVILIANS];
@@ -56,15 +56,15 @@ int saved = 0;
 
 // Grid layout
 int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 2, 2, 0, 0, 0},
-                                      {0, 0, 0, 0, 0, 2, 2, 0, 4, 0},
                                       {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
-                                      {0, 0, 0, 0, 0, 3, 0, 0, 0, 0},
-                                      {0, 0, 0, 4, 0, 0, 0, 0, 0, 0},
+                                      {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
+                                      {0, 0, 4, 0, 0, 7, 0, 0, 0, 0},
+                                      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                       {1, 0, 0, 3, 0, 0, 3, 0, 0, 0},
-                                      {1, 0, 0, 0, 3, 0, 0, 0, 3, 0},
+                                      {1, 0, 0, 0, 3, 0, 4, 0, 3, 0},
                                       {1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                       {0, 0, 2, 2, 0, 0, 0, 0, 0, 0},
-                                      {0, 0, 2, 2, 2, 2, 0, 2, 3, 0}};
+                                      {0, 0, 2, 2, 2, 2, 0, 2, 7, 0}};
 
 // Global arrays
 pos_t exits[N_EXITS];
@@ -73,10 +73,21 @@ pos_t pos_FRs[N_FIRST_RESPONDERS];
 pos_t pos_civilians[N_CIVILIANS];
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {{{4, 6}, {3, 6}, {3, 5}, {4, 5}, {4, 6}, {3, 6}, {3, 5}, {4, 5}},
                                                 {{6, 3}, {6, 4}, {6, 5}, {5, 5}, {5, 4}, {4, 4}, OUT_OF_MAP, OUT_OF_MAP}};
-pos_t fr_trajectories[N_FIRST_RESPONDERS][MAX_TRAJ] = {{{1, 8}, {1, 7}, {2, 7}, {3, 7}, {3, 6}, {3, 5}, {3, 4}, {2, 4}},
+/*pos_t fr_trajectories[N_FIRST_RESPONDERS][MAX_TRAJ] = {{{1, 8}, {1, 7}, {2, 7}, {3, 7}, {3, 6}, {3, 5}, {3, 4}, {2, 4}},
                                                        {{4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 0}, {2, 0}, {1, 0}, {0, 0}}};
+*/
 int drone_traj_lengths[N_DRONES] = {4, 6};
 int fr_traj_lenghts[N_FIRST_RESPONDERS] = { 8 , 4 };  
+pos_t movements[8] = {
+        {-1, 0},  // Move up
+        {-1, 1},  // Move up-right diagonal
+        {0, 1},   // Move right
+        {1, 1},   // Move down-right diagonal
+        {1, 0},   // Move down
+        {1, -1},  // Move down-left diagonal
+        {0, -1},  // Move left
+        {-1, -1}  // Move up-left diagonal
+    };
 
 // Exits, Humans, Drones can have arbitrary positions.
 // TODO: check if just a position is ok or we need an array
@@ -167,6 +178,18 @@ int get_civ_idx(pos_t pos){
     return -1;
 }
 
+pos_t randomPos(int i, pos_t pos) {
+    // Get the movement corresponding to the input i
+    pos_t move = movements[i], new_pos;
+    
+    // Calculate the new position
+    
+    new_pos.r = pos.r + move.r;
+    new_pos.c = pos.c + move.c;
+    
+    return new_pos;
+}
+
 /*
  * Get the next cell to go to reach the objective
  */
@@ -218,29 +241,6 @@ int status = FREE;                   // Status
 int time_to_assist = -1;             // Time to rescue a civilian       
 int civ_id;                          // Id of the civilian rescue
 
-/*
- * Enter the map at the entry point.
- */
-void enter() {
-    id = p_id;
-    //pos.r = pos_FRs[id].r;
-    //pos.c = pos_FRs[id].c;
-    trajectory = fr_trajectories[id];
-    pos = trajectory[k];
-    k = 0;
-    traj_l = fr_traj_lenghts[id];
-}
-
-/*
- * Calculate total time to assist a civilian in danger
- */
-void timeToAssist() {
-    if (status == NEAR_DANGER) {
-        time_to_assist = T_FR;
-    } else {
-        time_to_assist = T_FR + dist(pos, pos_civilians[civ_id]) - 1;
-    }
-}
 
 /*
  * Check if near a Civilian in danger
@@ -260,6 +260,35 @@ bool nearCivilianInDanger() {
     }
     return false;
 }
+
+/*
+ * Enter the map at the entry point.
+ */
+void enter() {
+    id = p_id;
+    //pos.r = pos_FRs[id].r;
+    //pos.c = pos_FRs[id].c;
+    //trajectory = fr_trajectories[id];
+    //pos = trajectory[k];
+    //k = 0;
+    //traj_l = fr_traj_lenghts[id];
+    pos = pos_FRs[id];
+    if (nearCivilianInDanger()) {
+        status = NEAR_DANGER;
+    }
+}
+
+/*
+ * Calculate total time to assist a civilian in danger
+ */
+void timeToAssist() {
+    if (status == NEAR_DANGER) {
+        time_to_assist = T_FR;
+    } else {
+        time_to_assist = T_FR + dist(pos, pos_civilians[civ_id]) - 1;
+    }
+}
+
 
 /*
  * Update global position Array
@@ -302,65 +331,66 @@ void step_fire(){
     update_FR_pos();
 }
 
-/*
-void step() {
+
+// TODO: change to put isCellFree and moveFr  
+void step(int step_dir) {
     // Random policy
     bool valid_step_found = false;
     int tries = 0;
     while (valid_step_found == false &amp;&amp; tries &lt; 8) {
-        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == FREE) { // Move down
+        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == FREE) { // Move up
+        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == NONE) { // Move up
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == FREE) { // Move left
+        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == NONE) { // Move left
             grid[pos.r][pos.c] = NONE;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == FREE) { // Move right
+        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == NONE) { // Move right
             grid[pos.r][pos.c] = NONE;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == FREE) { // Move down-left
+        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == NONE) { // Move down-left
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == FREE) { // Move down-right
+        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == NONE) { // Move down-right
             grid[pos.r][pos.c] = NONE;
             pos.r++;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == FREE) { // Move up-left
+        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == NONE) { // Move up-left
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             pos.c--;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == FREE) { // Move up-right
+        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == NONE) { // Move up-right
             grid[pos.r][pos.c] = NONE;
             pos.r--;
             pos.c++;
             grid[pos.r][pos.c] = FIRST_R;
             valid_step_found = true;
         }
-        step_dir = (step_dir+1) % 2;
+        step_dir = (step_dir+1) % 8;
         if (valid_step_found == false) {
             tries++;
         }
@@ -371,7 +401,7 @@ void step() {
         status = NEAR_DANGER;
     }
 }
-*/
+
 
 // TODO capire come gestire la precenza tra near danger e la ricezione della richiesta di aiuto: dovrebbe essere l'ordine di dichiarazione dei chan
 /*
@@ -389,6 +419,7 @@ void updateGrid() {
 /*
  * Step function that follows a specified trajectory. Updates grid and global FR position array and checks new status
  */
+/*
 void step() {
     k = (k+1) % traj_l;
     if(isCellFree(trajectory[k])){
@@ -403,7 +434,7 @@ void step() {
         status = NEAR_DANGER;
     }
 }
-
+*/
 /*
  * Update when a help request is received
  */
@@ -446,8 +477,17 @@ void retToMove() {
 		<location id="id3" x="-229" y="-42">
 			<committed/>
 		</location>
+		<location id="id4" x="-484" y="-263">
+			<committed/>
+		</location>
 		<init ref="id0"/>
-		<transition id="id4">
+		<transition id="id5">
+			<source ref="id4"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-425" y="-153">status == FREE</label>
+			<nail x="-433" y="-144"/>
+		</transition>
+		<transition id="id6">
 			<source ref="id2"/>
 			<target ref="id1"/>
 			<label kind="synchronisation" x="-306" y="153">civ_dead[civ_id]?</label>
@@ -455,36 +495,36 @@ void retToMove() {
 			<nail x="7" y="178"/>
 			<nail x="-477" y="178"/>
 		</transition>
-		<transition id="id5">
+		<transition id="id7">
 			<source ref="id3"/>
 			<target ref="id2"/>
 			<label kind="synchronisation" x="-170" y="-59">helping[civ_id]!</label>
 			<label kind="assignment" x="-170" y="-42">x=0, 
 timeToAssist()</label>
 		</transition>
-		<transition id="id6">
+		<transition id="id8">
 			<source ref="id1"/>
 			<target ref="id3"/>
 			<label kind="synchronisation" x="-408" y="-59">FR_help_req[id]?</label>
 			<label kind="assignment" x="-416" y="-42">helpReqReceived()</label>
 		</transition>
-		<transition id="id7">
-			<source ref="id1"/>
+		<transition id="id9">
+			<source ref="id4"/>
 			<target ref="id2"/>
-			<label kind="guard" x="-323" y="-187">status == NEAR_DANGER</label>
-			<label kind="synchronisation" x="-297" y="-170">helping[civ_id]!</label>
-			<label kind="assignment" x="-280" y="-153">nearDanger()</label>
+			<label kind="guard" x="-289" y="-221">status == NEAR_DANGER</label>
+			<label kind="synchronisation" x="-255" y="-195">helping[civ_id]!</label>
+			<label kind="assignment" x="-246" y="-170">nearDanger()</label>
 			<nail x="-229" y="-127"/>
 		</transition>
-		<transition id="id8">
+		<transition id="id10">
 			<source ref="id1"/>
-			<target ref="id1"/>
-			<label kind="guard" x="-612" y="-170">status == FREE &amp;&amp; x == STEP_TIME</label>
-			<label kind="assignment" x="-535" y="-153">step(), x = 0</label>
-			<nail x="-518" y="-127"/>
-			<nail x="-442" y="-127"/>
+			<target ref="id4"/>
+			<label kind="select" x="-671" y="-212">step_dir: int[0, 7]</label>
+			<label kind="guard" x="-671" y="-195">x == STEP_TIME</label>
+			<label kind="assignment" x="-714" y="-178">step(step_dir), x = 0</label>
+			<nail x="-535" y="-144"/>
 		</transition>
-		<transition id="id9">
+		<transition id="id11">
 			<source ref="id2"/>
 			<target ref="id1"/>
 			<label kind="guard" x="-306" y="34">x == time_to_assist</label>
@@ -493,12 +533,12 @@ timeToAssist()</label>
 			<nail x="8" y="76"/>
 			<nail x="-476" y="76"/>
 		</transition>
-		<transition id="id10">
+		<transition id="id12">
 			<source ref="id0"/>
-			<target ref="id1"/>
-			<label kind="synchronisation" x="-688" y="-59">init_done?</label>
-			<label kind="assignment" x="-672" y="-42">enter()</label>
-			<nail x="-493" y="-42"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-816" y="-246">init_done?</label>
+			<label kind="assignment" x="-782" y="-263">enter()</label>
+			<nail x="-722" y="-255"/>
 		</transition>
 	</template>
 	<template>
@@ -508,7 +548,7 @@ timeToAssist()</label>
 const int DANGER = 2;
 const int STEP = 3;
 const int ZERO_RESP = 4;
-const int ASSISTED = 5;
+const int CIV_ASSISTED = 5;
 const int DEAD = 6;
 const int BUSY = 7;
 
@@ -525,7 +565,6 @@ int fr_id;                 // Id of the FR to call
  * for every transition check clock update (if necessary), internal status update, grid update
  */
 
-// TODO: check why grid is updated with 7 instead of 9 when contacting
 // TODO: clean pos_to_save
 // TODO: occhio alla direzione verso le uscite
 // TODO: togliere ridondanza sulla posizione
@@ -577,16 +616,90 @@ int computeStatus(int px, int py){
     return STEP;
 }
 
+
+void step(int step_dir) {
+    // Random policy
+    bool valid_step_found = false;
+    int tries = 0;
+    while (valid_step_found == false &amp;&amp; tries &lt; 8) {
+        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == NONE) { // Move up
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == NONE) { // Move left
+            grid[pos.r][pos.c] = NONE;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == NONE) { // Move right
+            grid[pos.r][pos.c] = NONE;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == NONE) { // Move down-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == NONE) { // Move down-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == NONE) { // Move up-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == NONE) { // Move up-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        step_dir = (step_dir+1) % 8;
+        if (valid_step_found == false) {
+            tries++;
+        }
+    }
+
+    status = computeStatus(pos.r, pos.c);
+    
+    if (status == DANGER) grid[pos.r][pos.c] = NEED_ASSIST;
+
+    pos_civilians[id] = pos;
+}
+
 /*
  * Step function, update status, global grid and global civilians array
  */
-void step(){
+/*
+void step(int direction){
     pos_t next_cell;
     pos_t ret_pos = OUT_OF_MAP;
-    pos_t exit_cell = exits[getCloserExit(pos)];
+    //pos_t exit_cell = exits[getCloserExit(pos)];
 
-    getNextCellToGoTo(pos, exit_cell, ret_pos);
-    next_cell = ret_pos;
+    //getNextCellToGoTo(pos, exit_cell, ret_pos);
+    //next_cell = ret_pos;
+    next_cell= randomPos(direction, pos);
+    
     
     // Check if next_cell is free
     if (isCellFree(next_cell)) {
@@ -602,6 +715,7 @@ void step(){
 
     pos_civilians[id] = pos;
 }
+*/
 
 /*
  * Compute Zero Responder time needed to assist a civilian in danger
@@ -670,7 +784,7 @@ int getCloserFR(pos_t pos){
     pos_t fr_pos;
     int i, fr_id = -1, min_dist = MAX_INT;
     for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
-        if(dist(pos, pos_FRs[i]) &lt; min_dist){
+        if(dist(pos, pos_FRs[i]) &lt; min_dist &amp;&amp; grid[pos_FRs[i].r][pos_FRs[i].c] == FIRST_R){
             fr_id = i;
             min_dist = dist(pos, pos_FRs[i]);
         }
@@ -692,7 +806,7 @@ void frOccurred(){
  * Civilian gets help
  */
 void helpingOccurred(){
-    status = ASSISTED;
+    status = CIV_ASSISTED;
     grid[pos.r][pos.c] = ASSISTED;
 }
 
@@ -704,162 +818,172 @@ void extCasualtyOccurred(){
     status = STEP;
     grid[pos.r][pos.c] = 3;
 }</declaration>
-		<location id="id11" x="-756" y="-85">
+		<location id="id13" x="-756" y="-85">
 		</location>
-		<location id="id12" x="-144" y="-85">
+		<location id="id14" x="-144" y="-85">
 			<name x="-127" y="-110">Danger</name>
 			<label kind="invariant" x="-127" y="-85">x&lt;=T_V</label>
 		</location>
-		<location id="id13" x="-144" y="195">
+		<location id="id15" x="-144" y="195">
 			<name x="-195" y="195">Safe</name>
 		</location>
-		<location id="id14" x="-144" y="-255">
+		<location id="id16" x="-144" y="-255">
 			<name x="-212" y="-280">Moving</name>
-			<label kind="invariant" x="-255" y="-246">x&lt;=STEP_TIME</label>
+			<label kind="invariant" x="-246" y="-246">x&lt;=STEP_TIME</label>
 			<label kind="comments" x="-646" y="-382">Controllare se il clock viene inizializzato
 a zero dallo stato committed</label>
 		</location>
-		<location id="id15" x="306" y="-255">
+		<location id="id17" x="306" y="-255">
 			<name x="331" y="-280">Helping</name>
 			<label kind="invariant" x="331" y="-255">x&lt;=timeToAssist</label>
 		</location>
-		<location id="id16" x="-442" y="-85">
+		<location id="id18" x="-442" y="-85">
 			<committed/>
 		</location>
-		<location id="id17" x="-348" y="59">
+		<location id="id19" x="-348" y="59">
 			<name x="-399" y="59">Dead</name>
 		</location>
-		<location id="id18" x="527" y="-433">
+		<location id="id20" x="527" y="-433">
 			<name x="544" y="-450">Contacting</name>
 		</location>
-		<location id="id19" x="-144" y="59">
+		<location id="id21" x="-144" y="59">
 			<name x="-127" y="34">Helped</name>
 			<label kind="invariant" x="-127" y="68">x&lt;=T_V</label>
 		</location>
-		<location id="id20" x="68" y="-255">
+		<location id="id22" x="68" y="-255">
 			<committed/>
 		</location>
-		<location id="id21" x="306" y="-433">
+		<location id="id23" x="306" y="-433">
 			<committed/>
 		</location>
-		<init ref="id11"/>
-		<transition id="id22">
-			<source ref="id21"/>
-			<target ref="id18"/>
+		<location id="id24" x="-340" y="-170">
+			<committed/>
+		</location>
+		<init ref="id13"/>
+		<transition id="id25">
+			<source ref="id24"/>
+			<target ref="id16"/>
+			<label kind="guard" x="-127" y="-221">status == STEP</label>
+			<nail x="-127" y="-204"/>
+		</transition>
+		<transition id="id26">
+			<source ref="id23"/>
+			<target ref="id20"/>
 			<label kind="synchronisation" x="340" y="-459">FR_help_req[fr_id]!</label>
 		</transition>
-		<transition id="id23">
-			<source ref="id19"/>
-			<target ref="id13"/>
+		<transition id="id27">
+			<source ref="id21"/>
+			<target ref="id15"/>
 			<label kind="synchronisation" x="-314" y="144">saved_by_FR[id]?</label>
 			<label kind="assignment" x="-297" y="161">safeOccurred()</label>
 			<nail x="-178" y="136"/>
 		</transition>
-		<transition id="id24">
-			<source ref="id20"/>
-			<target ref="id15"/>
+		<transition id="id28">
+			<source ref="id22"/>
+			<target ref="id17"/>
 			<label kind="synchronisation" x="102" y="-280">helping[civ_need_id]!</label>
 			<label kind="assignment" x="102" y="-255">zrOccurred()</label>
 		</transition>
-		<transition id="id25">
-			<source ref="id14"/>
-			<target ref="id20"/>
+		<transition id="id29">
+			<source ref="id16"/>
+			<target ref="id22"/>
 			<label kind="synchronisation" x="-102" y="-272">call_zero_resp[id]?</label>
 			<label kind="assignment" x="-102" y="-255">getCivInNeed()</label>
 		</transition>
-		<transition id="id26">
-			<source ref="id19"/>
-			<target ref="id17"/>
+		<transition id="id30">
+			<source ref="id21"/>
+			<target ref="id19"/>
 			<label kind="guard" x="-280" y="59">x==T_V</label>
 			<label kind="synchronisation" x="-306" y="76">civ_dead[id]!</label>
 			<label kind="assignment" x="-331" y="93">casualtyOccurred()</label>
 		</transition>
-		<transition id="id27">
-			<source ref="id12"/>
-			<target ref="id19"/>
+		<transition id="id31">
+			<source ref="id14"/>
+			<target ref="id21"/>
 			<label kind="synchronisation" x="-102" y="-42">helping[id]?</label>
 			<label kind="assignment" x="-127" y="-25">helpingOccurred()</label>
 		</transition>
-		<transition id="id28">
-			<source ref="id18"/>
-			<target ref="id14"/>
+		<transition id="id32">
+			<source ref="id20"/>
+			<target ref="id16"/>
 			<label kind="synchronisation" x="110" y="-552">civ_dead[civ_need_id]?</label>
 			<label kind="assignment" x="119" y="-527">extCasualtyOccurred()</label>
 			<nail x="527" y="-526"/>
 			<nail x="-59" y="-526"/>
 		</transition>
-		<transition id="id29">
-			<source ref="id18"/>
-			<target ref="id13"/>
+		<transition id="id33">
+			<source ref="id20"/>
+			<target ref="id15"/>
 			<label kind="synchronisation" x="535" y="-8">saved_by_FR[civ_need_id]?</label>
 			<label kind="assignment" x="535" y="17">safeOccurred()</label>
 			<nail x="527" y="195"/>
 		</transition>
-		<transition id="id30">
-			<source ref="id14"/>
-			<target ref="id21"/>
+		<transition id="id34">
+			<source ref="id16"/>
+			<target ref="id23"/>
 			<label kind="synchronisation" x="59" y="-459">call_first_resp[id]?</label>
 			<label kind="assignment" x="93" y="-433">frOccurred()</label>
 			<nail x="-34" y="-433"/>
 		</transition>
-		<transition id="id31">
-			<source ref="id15"/>
-			<target ref="id14"/>
+		<transition id="id35">
+			<source ref="id17"/>
+			<target ref="id16"/>
 			<label kind="synchronisation" x="119" y="-374">civ_dead[civ_need_id]?</label>
 			<label kind="assignment" x="119" y="-348">extCasualtyOccurred()</label>
 			<nail x="306" y="-348"/>
 			<nail x="93" y="-348"/>
 		</transition>
-		<transition id="id32">
-			<source ref="id12"/>
-			<target ref="id17"/>
+		<transition id="id36">
+			<source ref="id14"/>
+			<target ref="id19"/>
 			<label kind="guard" x="-357" y="-51">x==T_V</label>
 			<label kind="synchronisation" x="-382" y="-34">civ_dead[id]!</label>
 			<label kind="assignment" x="-416" y="-17">casualtyOccurred()</label>
 		</transition>
-		<transition id="id33">
-			<source ref="id15"/>
-			<target ref="id13"/>
+		<transition id="id37">
+			<source ref="id17"/>
+			<target ref="id15"/>
 			<label kind="guard" x="314" y="-34">x==timeToAssist</label>
 			<label kind="synchronisation" x="314" y="-8">saved_by_ZR[civ_need_id]!</label>
 			<label kind="assignment" x="314" y="17">safeOccurred()</label>
 			<nail x="306" y="195"/>
 		</transition>
-		<transition id="id34">
-			<source ref="id16"/>
-			<target ref="id13"/>
+		<transition id="id38">
+			<source ref="id18"/>
+			<target ref="id15"/>
 			<label kind="guard" x="-578" y="34">status == SAVED</label>
 			<label kind="assignment" x="-569" y="59">safeOccurred()</label>
 			<nail x="-442" y="195"/>
 		</transition>
-		<transition id="id35">
-			<source ref="id16"/>
-			<target ref="id12"/>
+		<transition id="id39">
+			<source ref="id18"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-357" y="-110">status == DANGER</label>
 		</transition>
-		<transition id="id36">
-			<source ref="id16"/>
-			<target ref="id14"/>
+		<transition id="id40">
+			<source ref="id18"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-570" y="-238">status == STEP</label>
 			<nail x="-442" y="-255"/>
 		</transition>
-		<transition id="id37">
-			<source ref="id11"/>
-			<target ref="id16"/>
+		<transition id="id41">
+			<source ref="id13"/>
+			<target ref="id18"/>
 			<label kind="synchronisation" x="-722" y="-110">init_done?</label>
 			<label kind="assignment" x="-722" y="-85">enter()</label>
 		</transition>
-		<transition id="id38">
-			<source ref="id14"/>
-			<target ref="id12"/>
-			<label kind="guard" x="-289" y="-187">status == DANGER</label>
-			<label kind="assignment" x="-229" y="-170">x=0</label>
-		</transition>
-		<transition id="id39">
-			<source ref="id14"/>
+		<transition id="id42">
+			<source ref="id24"/>
 			<target ref="id14"/>
-			<label kind="guard" x="-323" y="-442">x==STEP_TIME &amp;&amp; status == STEP</label>
-			<label kind="assignment" x="-263" y="-425">step(), x=0</label>
+			<label kind="guard" x="-263" y="-153">status == DANGER</label>
+			<label kind="assignment" x="-186" y="-136">x=0</label>
+		</transition>
+		<transition id="id43">
+			<source ref="id16"/>
+			<target ref="id24"/>
+			<label kind="select" x="-272" y="-467">direction: int[0, 7]</label>
+			<label kind="guard" x="-238" y="-442">x==STEP_TIME</label>
+			<label kind="assignment" x="-263" y="-425">step(direction), x=0</label>
 			<nail x="-204" y="-340"/>
 			<nail x="-204" y="-391"/>
 			<nail x="-144" y="-391"/>
@@ -867,17 +991,17 @@ a zero dallo stato committed</label>
 			<nail x="-144" y="-331"/>
 			<nail x="-144" y="-331"/>
 		</transition>
-		<transition id="id40">
-			<source ref="id14"/>
-			<target ref="id13"/>
+		<transition id="id44">
+			<source ref="id24"/>
+			<target ref="id15"/>
 			<label kind="guard" x="93" y="-34">status == SAVED</label>
 			<label kind="assignment" x="93" y="-8">safeOccurred()</label>
-			<nail x="85" y="-85"/>
+			<nail x="85" y="-161"/>
 			<nail x="85" y="195"/>
 		</transition>
-		<transition id="id41">
-			<source ref="id19"/>
-			<target ref="id13"/>
+		<transition id="id45">
+			<source ref="id21"/>
+			<target ref="id15"/>
 			<label kind="synchronisation" x="-110" y="144">saved_by_ZR[id]?</label>
 			<label kind="assignment" x="-102" y="161">safeOccurred()</label>
 			<nail x="-110" y="136"/>
@@ -975,15 +1099,15 @@ void init_all() {
     set_civ_pos();
     compute_traj_lengths();
 }</declaration>
-		<location id="id42" x="-357" y="-76">
+		<location id="id46" x="-357" y="-76">
 			<committed/>
 		</location>
-		<location id="id43" x="-221" y="-76">
+		<location id="id47" x="-221" y="-76">
 		</location>
-		<init ref="id42"/>
-		<transition id="id44">
-			<source ref="id42"/>
-			<target ref="id43"/>
+		<init ref="id46"/>
+		<transition id="id48">
+			<source ref="id46"/>
+			<target ref="id47"/>
 			<label kind="synchronisation" x="-339" y="-93">init_done!</label>
 			<label kind="assignment" x="-339" y="-76">init_all()</label>
 		</transition>
@@ -992,8 +1116,8 @@ void init_all() {
 		<name x="9" y="9">Drone</name>
 		<parameter>dr_t p_id</parameter>
 		<declaration>const int STEP = 1;
-const int ZERO_R = 2;
-const int FIRST_R = 3;
+const int DRONE_ZERO_R = 2;
+const int DRONE_FIRST_R = 3;
 
 clock x;
 int id;                                // Id
@@ -1058,13 +1182,23 @@ pos_t zeroResponderInRange(){
  * Decide to ask for direct help or to call first responder
  */
 void decisionPolicy() {
-    //int dec = fint(random(2)); TODO: changed just for testing
-    int dec = 1;
+    int dec, i, count = 0;
+    for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
+        if(cell(pos_FRs[i]) == FIRST_R){
+            count++;
+        }
+    }
+    if(count == 0){
+        dec = 0;
+    }else{
+        dec = 1;
+        // TODO: write the policy (this, random or minimum time needed to save)
+    }
     if(dec == 0){
-        status = ZERO_R;
+        status = DRONE_ZERO_R;
     } 
     else{
-        status = FIRST_R;
+        status = DRONE_FIRST_R;
     }
 }
 
@@ -1091,56 +1225,58 @@ void step() {
         decisionPolicy();
     }
 }</declaration>
-		<location id="id45" x="-1045" y="-76">
+		<location id="id49" x="-1045" y="-76">
 		</location>
-		<location id="id46" x="-765" y="-76">
+		<location id="id50" x="-765" y="-76">
 			<name x="-833" y="-102">Moving</name>
 			<label kind="invariant" x="-884" y="-68">x&lt;=STEP_TIME</label>
 		</location>
-		<location id="id47" x="-544" y="-76">
+		<location id="id51" x="-544" y="-76">
 			<committed/>
 		</location>
-		<init ref="id45"/>
-		<transition id="id48">
-			<source ref="id47"/>
-			<target ref="id46"/>
-			<label kind="guard" x="-723" y="42">status == FIRST_R</label>
+		<init ref="id49"/>
+		<transition id="id52">
+			<source ref="id51"/>
+			<target ref="id50"/>
+			<label kind="guard" x="-739" y="42">status == DRONE_FIRST_R</label>
 			<label kind="synchronisation" x="-731" y="59">call_first_resp[zr]!</label>
 			<label kind="assignment" x="-705" y="76">status = STEP</label>
 			<nail x="-544" y="42"/>
 			<nail x="-765" y="42"/>
 		</transition>
-		<transition id="id49">
-			<source ref="id47"/>
-			<target ref="id46"/>
+		<transition id="id53">
+			<source ref="id51"/>
+			<target ref="id50"/>
 			<label kind="guard" x="-714" y="-42">status == STEP</label>
 			<nail x="-654" y="-42"/>
 		</transition>
-		<transition id="id50">
-			<source ref="id47"/>
-			<target ref="id46"/>
-			<label kind="guard" x="-722" y="-246">status == ZERO_R</label>
+		<transition id="id54">
+			<source ref="id51"/>
+			<target ref="id50"/>
+			<label kind="guard" x="-739" y="-246">status == DRONE_ZERO_R</label>
 			<label kind="synchronisation" x="-731" y="-229">call_zero_resp[zr]!</label>
 			<label kind="assignment" x="-714" y="-212">status = STEP</label>
 			<nail x="-544" y="-85"/>
 			<nail x="-544" y="-187"/>
 			<nail x="-765" y="-187"/>
 		</transition>
-		<transition id="id51">
-			<source ref="id46"/>
-			<target ref="id47"/>
+		<transition id="id55">
+			<source ref="id50"/>
+			<target ref="id51"/>
 			<label kind="guard" x="-714" y="-153">x == STEP_TIME</label>
 			<label kind="assignment" x="-714" y="-136">step(), x = 0</label>
 			<nail x="-654" y="-110"/>
 		</transition>
-		<transition id="id52">
-			<source ref="id45"/>
-			<target ref="id46"/>
+		<transition id="id56">
+			<source ref="id49"/>
+			<target ref="id50"/>
 			<label kind="synchronisation" x="-1011" y="-93">init_done?</label>
 			<label kind="assignment" x="-1003" y="-76">enter()</label>
 		</transition>
 	</template>
-	<system>system Initializer, First_Responder, Civilian, Drone;
+	<system>//system Initializer, Civilian;
+
+system Initializer, First_Responder, Civilian, Drone;
 </system>
 	<queries>
 		<query>
