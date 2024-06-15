@@ -1,7 +1,8 @@
 import random
 
+
 class Grid:
-    def __init__(self, rows, cols, n_exits, n_fires, n_civilians, n_frs, t_zr, t_fr, t_v, n_drones):
+    def __init__(self, rows, cols, n_exits, n_fires, n_civilians, n_frs, t_zr, t_fr, t_v, n_drones, n_v):
         self.rows = rows
         self.cols = cols
         self.n_exits = n_exits
@@ -12,6 +13,7 @@ class Grid:
         self.t_fr = t_fr
         self.t_v = t_v
         self.n_drones = n_drones
+        self.n_v = n_v
         self.grid = [[0 for _ in range(cols)] for _ in range(rows)]
         self.__fill_random_cells__(n_fires, 2)
         self.__fill_random_cells_border__(n_exits, 1)
@@ -20,44 +22,6 @@ class Grid:
         self.trajectories = self.__build_drone_trajectories__()
         self.traj_lengths = [len(traj) for traj in self.trajectories]
         self.max_traj = max(self.traj_lengths)
-        
-    """
-    def __fill_cluster_cells__(self, count, value, cluster_size=3):
-        if count > self.rows * self.cols:
-            raise ValueError("Count exceeds the number of cells in the grid")
-        
-        # Calculate the number of clusters along rows and columns
-        clusters_rows = (self.rows + cluster_size - 1) // cluster_size
-        clusters_cols = (self.cols + cluster_size - 1) // cluster_size
-        
-        # Create a list of all clusters
-        all_clusters = [(cluster_row, cluster_col) for cluster_row in range(clusters_rows) for cluster_col in range(clusters_cols)]
-        
-        # Determine the number of clusters to select based on the count and cluster size
-        clusters_to_select = min(len(all_clusters), max(1, count // (cluster_size**2)))
-        
-        # Randomly select clusters
-        selected_clusters = random.sample(all_clusters, clusters_to_select)
-        
-        for cluster_row, cluster_col in selected_clusters:
-            # Calculate the actual number of rows and cols in the cluster (for edge cases)
-            actual_cluster_rows = min(cluster_size, self.rows - cluster_row * cluster_size)
-            actual_cluster_cols = min(cluster_size, self.cols - cluster_col * cluster_size)
-            
-        # Calculate the number of cells to fill in each selected cluster
-        cells_to_fill_per_cluster = min(actual_cluster_rows * actual_cluster_cols, max(1, count // clusters_to_select))
-        
-        # Generate all positions within the cluster
-        cluster_positions = [(cluster_row * cluster_size + row_offset, cluster_col * cluster_size + col_offset) 
-                             for row_offset in range(actual_cluster_rows) 
-                             for col_offset in range(actual_cluster_cols)]
-        
-        # Randomly select positions within the cluster to fill
-        selected_positions = random.sample(cluster_positions, cells_to_fill_per_cluster)
-        
-        for row, col in selected_positions:
-            self.set_value(row, col, value)
-    """
             
     def __fill_random_cells__(self, count, value):
         if count > self.rows * self.cols:
@@ -149,8 +113,9 @@ class Grid:
     
     def generateDeclarations(self):
         prefix = "const int "
+        declarations += "typedef struct { int r; int c; } pos_t;\n"
         declarations = prefix + "GRID_LENGTH = " + str(self.rows) + ";\n"
-        declarations += prefix + "GRID_WIDTH = " + str(self.cols) + ";\n"
+        declarations += prefix + "GRID_HEIGHT = " + str(self.cols) + ";\n"
         declarations += prefix + "N_EXITS = " + str(self.n_exits) + ";\n"
         declarations += prefix + "N_FIRES = " + str(self.n_fires) + ";\n"
         declarations += prefix + "N_CIVILIANS = " + str(self.n_civilians) + ";\n"
@@ -159,14 +124,60 @@ class Grid:
         declarations += prefix + "T_ZR = " + str(self.t_zr) + ";\n"
         declarations += prefix + "T_FR = " + str(self.t_fr) + ";\n"
         declarations += prefix + "T_V = " + str(self.t_v) + ";\n"
+        declarations += prefix + "N_V = " + str(self.n_v) + ";\n"
         declarations += prefix + "MAX_TRAJ = " + str(self.max_traj) + ";\n"
+        declarations += "const pos_t OUT_OF_MAP = { -1, -1 };\n"
         declarations += "int grid[GRID_LENGTH][GRID_WIDTH] = " + self.gridDeclaration() + "\n"
         declarations += "int drone_trajectories[N_DRONES][MAX_TRAJ] = " + self.droneDeclaration() + "\n"
-        declarations += "int traj_lengths[N_DRONES] = {" + ", ".join(map(str, self.traj_lengths)) + "};\n"
+        declarations += "int drone_traj_lengths[N_DRONES] = {" + ", ".join(map(str, self.traj_lengths)) + "};\n"
         print(declarations)
         
 
-grid = Grid(30, 20, 10, 30, 6, 5, 6, 7, 8, 3)
-grid.display()
-grid.displayDrones()
+grid = Grid(rows=30, cols=20, n_exits=10, n_fires=30, n_civilians=6, n_frs=5, t_zr=6, t_fr=7, t_v=8, n_drones=3, n_v=2)
+#grid.display()
+#grid.displayDrones()
 grid.generateDeclarations()
+
+"""
+    def __fill_cluster_cells__(self, count, value, cluster_size=3):
+        if count > self.rows * self.cols:
+            raise ValueError("Count exceeds the number of cells in the grid")
+        
+        # Calculate the number of clusters along rows and columns
+        clusters_rows = (self.rows + cluster_size - 1) // cluster_size
+        clusters_cols = (self.cols + cluster_size - 1) // cluster_size
+        
+        # Create a list of all clusters
+        all_clusters = [(cluster_row, cluster_col) for cluster_row in range(clusters_rows) for cluster_col in range(clusters_cols)]
+        
+        # Determine the number of clusters to select based on the count and cluster size
+        clusters_to_select = min(len(all_clusters), max(1, count // (cluster_size**2)))
+        
+        # Randomly select clusters
+        selected_clusters = random.sample(all_clusters, clusters_to_select)
+        
+        for cluster_row, cluster_col in selected_clusters:
+            # Calculate the actual number of rows and cols in the cluster (for edge cases)
+            actual_cluster_rows = min(cluster_size, self.rows - cluster_row * cluster_size)
+            actual_cluster_cols = min(cluster_size, self.cols - cluster_col * cluster_size)
+            
+        # Calculate the number of cells to fill in each selected cluster
+        cells_to_fill_per_cluster = min(actual_cluster_rows * actual_cluster_cols, max(1, count // clusters_to_select))
+        
+        # Generate all positions within the cluster
+        cluster_positions = [(cluster_row * cluster_size + row_offset, cluster_col * cluster_size + col_offset) 
+                             for row_offset in range(actual_cluster_rows) 
+                             for col_offset in range(actual_cluster_cols)]
+        
+        # Randomly select positions within the cluster to fill
+        selected_positions = random.sample(cluster_positions, cells_to_fill_per_cluster)
+        
+        for row, col in selected_positions:
+            self.set_value(row, col, value)
+    """
+    
+    #TODO: Implement a function to fill cells in clusters
+    #      - Take a percentage of total cells
+    #      - Take a fraction of the dimemsions
+    
+    #TODO: Add comments in the printed declarations
