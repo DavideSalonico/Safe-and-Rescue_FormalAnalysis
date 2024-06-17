@@ -12,7 +12,7 @@ const int N_DRONES = 2;
 const int N_CIVILIANS = 6;
 const int N_FIRST_RESPONDERS = 2;
 const int T_ZR = 4;                      // Time that a Zero Responder needs to help someone
-const int T_FR = 3;                      // Time that a First Responder needs to help someone
+const int T_FR = 4;                      // Time that a First Responder needs to help someone
 const int T_V = 10;                      // Time before a civilian is supposed to die
 const int N_V = 2;                       // Drones' visibility range
 const int MAX_TRAJ = 8;                  // Max trajectory length
@@ -34,6 +34,18 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 2, 2, 0, 0, 0},
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {{{4, 6}, {3, 6}, {3, 5}, {4, 5}, {4, 6}, {3, 6}, {3, 5}, {4, 5}},
                                                 {{6, 3}, {6, 4}, {6, 5}, {5, 5}, {5, 4}, {4, 4}, OUT_OF_MAP, OUT_OF_MAP}};
 int drone_traj_lengths[N_DRONES] = {4, 6};
+
+typedef int ddp_t;              // DRONE DECISION POLICY
+const ddp_t ALWAYS_ZR = 0;      // Always call the zero responder nearby
+const ddp_t ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
+const ddp_t MIN_TIME = 2;       // Call zr or fr based on their total helping time
+
+typedef int movement_policy_t; 
+const movement_policy_t CLOSER_EXIT = 0;
+const movement_policy_t RANDOM = 1; 
+
+ddp_t drone_decision_policy = MIN_TIME;
+movement_policy_t fr_movement_policy = RANDOM;
 
 // TODO: gestire queste variabili e capire come proporzionarle
 // Const for model checking
@@ -1139,8 +1151,10 @@ pos_t getCloserFR(pos_t pos){
 /*
  * Decide to ask for direct help or to call first responder (Random decision)
  */
-void decisionPolicy(int decision) {
+void decisionPolicy(int decision, pos_t civInDanger, pos_t potentialZr) {
     int dec, i, count = 0;
+    pos_t closerFr;
+    // Case in which there are no free first responders
     for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
         if(cell(pos_FRs[i]) == FIRST_R){
             count++;
@@ -1148,9 +1162,29 @@ void decisionPolicy(int decision) {
     }
     if(count == 0){
         dec = 0;
-    }else{
+        return;
+    }
+
+    // Compute the action based on the given policy    
+    if(drone_decision_policy == RANDOM){
         dec = decision;
     }
+    else if(drone_decision_policy == ALWAYS_ZR){
+        dec = 0;
+    }
+    else if(drone_decision_policy == ALWAYS_FR){
+        dec = 1; // from the previous check at least one fr is free
+    }
+    else if(drone_decision_policy == MIN_TIME){
+        closerFr = getCloserFR(civInDanger);
+        if((dist(closerFr, civInDanger) + dist(potentialZr, closerFr) + T_FR) &lt;= (dist(potentialZr, civInDanger) + T_ZR)){
+            dec = 1;
+        }else{
+            dec = 0;
+        }
+    }
+    
+    // Update status according to the result given by the action following globally-defined policy
     if(dec == 0){
         status = DRONE_ZERO_R;
     } 
@@ -1158,6 +1192,68 @@ void decisionPolicy(int decision) {
         status = DRONE_FIRST_R;
     }
 }
+
+
+// TODO: Change it in order to properly set the pos_to_save
+/*
+ * Step function that follows a specified trajectory (for random decision)
+ */
+void step(int decision) {
+    int i;
+    pos_t civ_in_danger, potential_zr;
+
+    // Check if need to move
+    if (saved+casualties == N_CIVILIANS) {
+        status = FINISHED;
+    } else {
+        // Do one step along the trajectory
+        k = (k+1) % traj_l;
+        pos = trajectory[k];
+
+        // Explore visibility range
+        civ_in_danger = civilianInDangerInRange();
+        potential_zr = zeroResponderInRange();
+
+        // Find id of the civilian to call (either as a zr either to call a fr)
+        zr = get_civ_idx(potential_zr);
+        if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
+            pos_to_save = civ_in_danger;
+            decisionPolicy(decision, civ_in_danger, potential_zr);
+        }
+    }
+}
+
+// TODO: Change it in order to properly set the pos_to_save
+/*
+ * Step function that follows a specified trajectory (for min time decision)
+ */
+/*
+void step() {
+    int i;
+    pos_t civ_in_danger, potential_zr;
+
+    // Check if need to move
+    if (saved+casualties == N_CIVILIANS) {
+        status = FINISHED;
+    } else {
+        // Do one step along the trajectory
+        k = (k+1) % traj_l;
+        pos = trajectory[k];
+
+        // Explore visibility range
+        civ_in_danger = civilianInDangerInRange();
+        potential_zr = zeroResponderInRange();
+
+        // Find id of the civilian to call (either as a zr either to call a fr)
+        zr = get_civ_idx(potential_zr);
+        if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
+            pos_to_save = civ_in_danger;
+            decisionPolicy(civ_in_danger, potential_zr);
+        }
+    }
+}
+*/
+
 
 /*
  * Decide to ask for direct help or to call first responder (min time decision)
@@ -1212,66 +1308,6 @@ void decisionPolicy() {
     } 
     else{
         status = DRONE_FIRST_R;
-    }
-}
-*/
-
-// TODO: Change it in order to properly set the pos_to_save
-/*
- * Step function that follows a specified trajectory (for random decision)
- */
-void step(int decision) {
-    int i;
-    pos_t civ_in_danger, potential_zr;
-
-    // Check if need to move
-    if (saved+casualties == N_CIVILIANS) {
-        status = FINISHED;
-    } else {
-        // Do one step along the trajectory
-        k = (k+1) % traj_l;
-        pos = trajectory[k];
-
-        // Explore visibility range
-        civ_in_danger = civilianInDangerInRange();
-        potential_zr = zeroResponderInRange();
-
-        // Find id of the civilian to call (either as a zr either to call a fr)
-        zr = get_civ_idx(potential_zr);
-        if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
-            pos_to_save = civ_in_danger;
-            decisionPolicy(decision);
-        }
-    }
-}
-
-// TODO: Change it in order to properly set the pos_to_save
-/*
- * Step function that follows a specified trajectory (for min time decision)
- */
-/*
-void step() {
-    int i;
-    pos_t civ_in_danger, potential_zr;
-
-    // Check if need to move
-    if (saved+casualties == N_CIVILIANS) {
-        status = FINISHED;
-    } else {
-        // Do one step along the trajectory
-        k = (k+1) % traj_l;
-        pos = trajectory[k];
-
-        // Explore visibility range
-        civ_in_danger = civilianInDangerInRange();
-        potential_zr = zeroResponderInRange();
-
-        // Find id of the civilian to call (either as a zr either to call a fr)
-        zr = get_civ_idx(potential_zr);
-        if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
-            pos_to_save = civ_in_danger;
-            decisionPolicy(civ_in_danger, potential_zr);
-        }
     }
 }
 */</declaration>
