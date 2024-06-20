@@ -32,7 +32,8 @@ class Grid:
         if count > self.rows * self.cols:
             raise ValueError("Count exceeds the number of cells in the grid")
         
-        all_positions = [(row, col) for row in range(self.rows) for col in range(self.cols)]
+        
+        all_positions = [(row, col) for row in range(self.rows) for col in range(self.cols) if self.grid[row][col] == 0]
         random_positions = random.sample(all_positions, count)
         
         for row, col in random_positions:
@@ -193,7 +194,7 @@ class Grid:
         print(declarations)
         
 
-grid = Grid(rows=30, cols=20, n_exits=10, n_fires=30, n_civilians=6, n_frs=5, t_zr=6, t_fr=7, t_v=8, n_drones=3, n_v=2)
+grid = Grid(rows=30, cols=20, n_exits=10, n_fires=60, n_civilians=6, n_frs=5, t_zr=6, t_fr=7, t_v=8, n_drones=3, n_v=2)
 #grid.display()
 #grid.displayDrones()
 grid.generateDeclarations()
