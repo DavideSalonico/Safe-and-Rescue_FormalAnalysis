@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
-	<declaration>typedef struct { int r; int c; } pos_t;
+	<declaration>
+typedef struct { int r; int c; } pos_t;
 
 // Place global declarations here.
 const int GRID_LENGTH = 10;
@@ -23,34 +24,91 @@ const pos_t OUT_OF_MAP = {-1, -1};       // Position to declare someone has exit
 int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 2, 2, 0, 0, 0},
                                       {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
                                       {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
-                                      {0, 0, 4, 0, 0, 7, 0, 0, 0, 0},
+                                      {0, 0, 8, 0, 0, 5, 0, 0, 0, 0},
                                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                                      {1, 0, 0, 3, 0, 0, 3, 0, 0, 0},
-                                      {1, 0, 0, 0, 3, 0, 4, 0, 3, 0},
+                                      {1, 0, 0, 3, 0, 0, 3, 0, 0, 3},
+                                      {1, 0, 0, 0, 3, 0, 8, 0, 0, 0},
                                       {1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
                                       {0, 0, 2, 2, 0, 0, 0, 0, 0, 0},
-                                      {0, 0, 2, 2, 2, 2, 0, 2, 7, 0}};
+                                      {0, 0, 2, 2, 2, 2, 0, 2, 5, 0}};
 
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {{{4, 6}, {3, 6}, {3, 5}, {4, 5}, {4, 6}, {3, 6}, {3, 5}, {4, 5}},
                                                 {{6, 3}, {6, 4}, {6, 5}, {5, 5}, {5, 4}, {4, 4}, OUT_OF_MAP, OUT_OF_MAP}};
 int drone_traj_lengths[N_DRONES] = {4, 6};
+
+/*
+const int GRID_LENGTH = 20;
+const int GRID_HEIGHT = 25;
+const int N_EXITS = 10;
+const int N_FIRES = 40;
+const int N_CIVILIANS = 8;
+const int N_FIRST_RESPONDERS = 5;
+const int N_DRONES = 4;
+const int T_ZR = 7;                      // Time that a Zero Responder needs to help someone
+const int T_FR = 4;                      // Time that a First Responder needs to help someone
+const int T_V = 20;                       // Time before a civilian is supposed to die
+const int N_V = 2;                       // Drones' visibility range
+const int MAX_TRAJ = 25;                   // Max trajectory length
+
+// Grid layout
+
+const pos_t OUT_OF_MAP = { -1, -1 };
+int grid[GRID_LENGTH][GRID_HEIGHT] = {
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
+  {0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0}
+};
+
+// Global arrays
+
+pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
+  {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}, {0, 9}, {0, 10}, {0, 11}, {0, 12}, {0, 13}, {0, 14}, {0, 15}, {0, 16}, {0, 
+17}, {0, 18}, {0, 19}, {0, 20}, {0, 21}, {0, 22}, {0, 23}, {0, 24}},
+  {{5, 0}, {5, 1}, {5, 2}, {5, 3}, {5, 4}, {5, 5}, {5, 6}, {5, 7}, {5, 8}, {5, 9}, {5, 10}, {5, 11}, {5, 12}, {5, 13}, {5, 14}, {5, 15}, {5, 16}, {5, 
+17}, {5, 18}, {5, 19}, {5, 20}, {5, 21}, {5, 22}, {5, 23}, {5, 24}},
+  {{10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4}, {10, 5}, {10, 6}, {10, 7}, {10, 8}, {10, 9}, {10, 10}, {10, 11}, {10, 12}, {10, 13}, {10, 14}, {10, 15}, {10, 16}, {10, 17}, {10, 18}, {10, 19}, {10, 20}, {10, 21}, {10, 22}, {10, 23}, {10, 24}},
+  {{15, 0}, {15, 1}, {15, 2}, {15, 3}, {15, 4}, {15, 5}, {15, 6}, {15, 7}, {15, 8}, {15, 9}, {15, 10}, {15, 11}, {15, 12}, {15, 13}, {15, 14}, {15, 15}, {15, 16}, {15, 17}, {15, 18}, {15, 19}, {15, 20}, {15, 21}, {15, 22}, {15, 23}, {15, 24}}
+};
+int drone_traj_lengths[N_DRONES] = {25, 25, 25, 25};
+*/
+
 
 typedef int ddp_t;              // DRONE DECISION POLICY
 const ddp_t ALWAYS_ZR = 0;      // Always call the zero responder nearby
 const ddp_t ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
 const ddp_t MIN_TIME = 2;       // Call zr or fr based on their total helping time
 
-typedef int movement_policy_t; 
+typedef int cmp_t;             
+
+typedef int movement_policy_t;            //CIVILIAN/FIRST RESPONDER MOVING POLICY
 const movement_policy_t CLOSER_EXIT = 0;
 const movement_policy_t RANDOM = 1; 
 
 ddp_t drone_decision_policy = MIN_TIME;
 movement_policy_t fr_movement_policy = RANDOM;
+movement_policy_t civ_moving_policy = RANDOM;
 
 // TODO: gestire queste variabili e capire come proporzionarle
 // Const for model checking
-const int N_save = 0;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
-const int T_scs = 0;                     // Time to check properties
+const int N_save = 4;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
+const int T_scs = 170;                     // Time to check properties
 clock total_time;
 
 // Global types
@@ -59,6 +117,8 @@ typedef int [0, N_FIRST_RESPONDERS-1] fr_t;
 typedef int [0, N_CIVILIANS-1] civ_t;
 
 // Map constants
+
+/*
 const int OUTSIDE      = -1;
 const int NONE         =  0;
 const int EXIT         =  1;             // Exit
@@ -70,6 +130,19 @@ const int ZERO_R       =  5;             // Zero Responder
 const int ASSISTED     =  6;             // Civilian in danger being assisted
 const int NEED_ASSIST  =  7;             // Civilian in danger in need for assistance
 const int CONTACTING   =  9;             // survivor busy calling a first responder/waiting for him to rescue someone in danger
+*/
+const int OUTSIDE      = -1;             // dead or saved
+const int NONE         =  0;             
+const int EXIT         =  1;             // Exit
+const int FIRE         =  2;             // Fire
+const int SURVIVOR     =  3;             // Survivor (civilian not in danger)
+const int ZERO_R       =  4;             // Zero Responder 
+const int NEED_ASSIST  =  5;             // in danger, Civilian in danger in need for assistance
+const int ASSISTED     =  6;             // Civilian assisted
+const int CONTACTING   =  7;             // busy Zero responder, survivor busy calling a first responder/waiting for him to rescue someone in danger
+const int FIRST_R      =  8;             // First Responder not busy
+const int FIRST_R_BUSY_CALLED =  9;      // First Responder busy helping someone called by a survivor
+const int FIRST_R_BUSY_NEAR_DANGER =  10;// First Responder busy helping someone near danger
 
 const int MAX_INT =  32767; //from doc
 
@@ -99,6 +172,16 @@ pos_t pos_civilians[N_CIVILIANS];
 const int STEP_TIME = 1;                 // Time to step
 pos_t pos_to_save = OUT_OF_MAP;
 int caller_id = -1;
+int directions[8][2] = {
+        {1, 0},   // Move down
+        {-1, 0},  // Move up
+        {0, -1},  // Move left
+        {0, 1},   // Move right
+        {1, -1},  // Move down-left
+        {1, 1},   // Move down-right
+        {-1, -1}, // Move up-left
+        {-1, 1}   // Move up-right
+};
 
 /* GLOBAL UTILITY FUNCTIONS ****************/
 
@@ -217,10 +300,16 @@ bool isCellFree(pos_t p) {
 	<template>
 		<name>First_Responder</name>
 		<parameter>fr_t p_id</parameter>
-		<declaration>const int FREE = 0;
+		<declaration>/*
+const int FREE = 0;
 const int NEAR_DANGER = 1;
 const int CALLED = 2;
 const int FINISHED = 3;
+*/
+const int FINISHED = -1;
+const int FREE = 8;
+const int CALLED = 9;
+const int NEAR_DANGER = 10;
 
 clock x;
 int id, k;                           // Id and trajectory index
@@ -321,7 +410,76 @@ void step_fire(){
 }
 
 
-// TODO: change to put isCellFree and moveFr  
+void movementPolicy(int step_dir){
+    int new_r, new_c, tries = 0;
+    bool valid_step_found = false;
+    
+
+    if(fr_movement_policy == RANDOM){
+        
+      while (valid_step_found == false &amp;&amp; tries &lt; 8) {
+        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == NONE) { // Move up
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == NONE) { // Move left
+            grid[pos.r][pos.c] = NONE;
+            pos.c--;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == NONE) { // Move right
+            grid[pos.r][pos.c] = NONE;
+            pos.c++;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == NONE) { // Move down-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c--;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == NONE) { // Move down-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c++;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == NONE) { // Move up-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c--;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == NONE) { // Move up-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c++;
+            grid[pos.r][pos.c] = FIRST_R;
+            valid_step_found = true;
+        }
+        step_dir = (step_dir+1) % 8;
+        if (valid_step_found == false) {
+            tries++;
+        }
+        }
+    }
+
+}
+
+// TODO: change to put moveFr??
 void step(int step_dir) {
 
     // Check if need to move
@@ -329,66 +487,8 @@ void step(int step_dir) {
         status = FINISHED;
     } else {
         // Random policy
-        bool valid_step_found = false;
-        int tries = 0;
-        while (valid_step_found == false &amp;&amp; tries &lt; 8) {
-            if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
-                grid[pos.r][pos.c] = NONE;
-                pos.r++;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == NONE) { // Move up
-                grid[pos.r][pos.c] = NONE;
-                pos.r--;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == NONE) { // Move left
-                grid[pos.r][pos.c] = NONE;
-                pos.c--;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == NONE) { // Move right
-                grid[pos.r][pos.c] = NONE;
-                pos.c++;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == NONE) { // Move down-left
-                grid[pos.r][pos.c] = NONE;
-                pos.r++;
-                pos.c--;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == NONE) { // Move down-right
-                grid[pos.r][pos.c] = NONE;
-                pos.r++;
-                pos.c++;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == NONE) { // Move up-left
-                grid[pos.r][pos.c] = NONE;
-                pos.r--;
-                pos.c--;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == NONE) { // Move up-right
-                grid[pos.r][pos.c] = NONE;
-                pos.r--;
-                pos.c++;
-                grid[pos.r][pos.c] = FIRST_R;
-                valid_step_found = true;
-            }
-            step_dir = (step_dir+1) % 8;
-            if (valid_step_found == false) {
-                tries++;
-            }
-        }
+        movementPolicy(step_dir);
+
         update_FR_pos();
 
         if (nearCivilianInDanger()) {
@@ -403,15 +503,18 @@ void step(int step_dir) {
  * Update global grid by setting FR busy or not
  */
 void updateGrid() {
-    if (grid[pos.r][pos.c] == FIRST_R) {
-        grid[pos.r][pos.c] = FIRST_R_BUSY;
-    } else if (grid[pos.r][pos.c] == FIRST_R_BUSY) {
+    if (grid[pos.r][pos.c] == FIRST_R &amp;&amp; status == NEAR_DANGER) {
+        grid[pos.r][pos.c] = FIRST_R_BUSY_NEAR_DANGER;
+    } else if (grid[pos.r][pos.c] == FIRST_R &amp;&amp; status == CALLED) {
+        grid[pos.r][pos.c] = FIRST_R_BUSY_CALLED;
+    } else if (grid[pos.r][pos.c] == FIRST_R_BUSY_NEAR_DANGER || grid[pos.r][pos.c] == FIRST_R_BUSY_CALLED) {
         grid[pos.r][pos.c] = FIRST_R;
     }
 }
 
 // TODO: Change it in order to properly set the pos_to_save
 /*
+
  * Step function that follows a specified trajectory. Updates grid and global FR position array and checks new status
  */
 /*
@@ -430,6 +533,7 @@ void step() {
     }
 }
 */
+
 /*
  * Update when a help request is received
  */
@@ -546,12 +650,21 @@ timeToAssist()</label>
 	<template>
 		<name>Civilian</name>
 		<parameter>civ_t p_id</parameter>
-		<declaration>const int SAVED = 1;
+		<declaration>/*
+const int SAVED = 1;
 const int DANGER = 2;
 const int STEP = 3;
 const int ZERO_RESP = 4;
 const int CIV_ASSISTED = 5;
 const int DEAD = 6;
+const int BUSY = 7;
+*/
+const int SAVED = -1;
+const int DEAD = -1;
+const int STEP = 3;
+const int ZERO_RESP = 4;
+const int DANGER = 5;
+const int CIV_ASSISTED = 6;
 const int BUSY = 7;
 
 clock x;
@@ -561,6 +674,7 @@ int status = 0;            // Status
 int timeToAssist = -1;     // Time to rescue another civilian
 int civ_need_id;           // Id of the civilian to help (ZR case)
 int fr_id;                 // Id of the FR to call
+int delta_r, delta_c;
 
 /*
  * Golden rule to check:
@@ -606,12 +720,17 @@ int computeStatus(int px, int py){
     return STEP;
 }
 
+void movementPolicy(int step_dir){
+    pos_t next_cell;
+    pos_t ret_pos = OUT_OF_MAP;
+    pos_t exit_cell = exits[getCloserExit(pos)];
 
-void step(int step_dir) {
-    // Random policy
     bool valid_step_found = false;
-    int tries = 0;
-    while (valid_step_found == false &amp;&amp; tries &lt; 8) {
+    int new_r, new_c, tries = 0;
+    
+
+    if(civ_moving_policy == RANDOM){
+        while (valid_step_found == false &amp;&amp; tries &lt; 8) {
         if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
             grid[pos.r][pos.c] = NONE;
             pos.r++;
@@ -668,7 +787,25 @@ void step(int step_dir) {
         if (valid_step_found == false) {
             tries++;
         }
+        }
     }
+    else if (civ_moving_policy == CLOSER_EXIT){
+
+        getNextCellToGoTo(pos, exit_cell, ret_pos);
+        next_cell = ret_pos;
+    
+        // Check if next_cell is free
+        if (isCellFree(next_cell)) {
+            move_civ(pos, next_cell);
+            pos = next_cell;
+        }
+    }
+
+}
+
+void step(int step_dir) {
+
+    movementPolicy(step_dir);
 
     status = computeStatus(pos.r, pos.c);
     
@@ -777,7 +914,7 @@ void helpingOccurred(){
 void extCasualtyOccurred(){
     x=0;
     status = STEP;
-    grid[pos.r][pos.c] = 3;
+    grid[pos.r][pos.c] = SURVIVOR;
 }</declaration>
 		<location id="id15" x="-671" y="-68">
 		</location>
@@ -1069,10 +1206,16 @@ void init_all() {
 	<template>
 		<name x="9" y="9">Drone</name>
 		<parameter>dr_t p_id</parameter>
-		<declaration>const int STEP = 1;
+		<declaration>/*
+const int STEP = 1;
 const int DRONE_ZERO_R = 2;
 const int DRONE_FIRST_R = 3;
 const int FINISHED = 4;
+*/
+const int FINISHED = -1;
+const int STEP = 11;
+const int DRONE_ZERO_R = 12;
+const int DRONE_FIRST_R = 13;
 
 clock x;
 int id;                                // Id
@@ -1082,6 +1225,7 @@ int k;                                 // Trajectory index
 int status = STEP;                     // Status
 pos_t pos;                             // Position
 int zr;                                // ZeroResponder 
+bool returning = false;
 
 // TODO: check the right status even when entering in the map
 // TODO: bug when signaling zr and two in need in range
@@ -1145,7 +1289,7 @@ pos_t getCloserFR(pos_t pos){
             min_dist = dist(pos, pos_FRs[i]);
         }
     }
-    return pos_FRs[i];
+    return pos_FRs[fr_id];
 }
 
 /*
@@ -1206,8 +1350,20 @@ void step(int decision) {
     if (saved+casualties == N_CIVILIANS) {
         status = FINISHED;
     } else {
-        // Do one step along the trajectory
-        k = (k+1) % traj_l;
+        // Do one step along the trajectory and then go back
+        if (k == traj_l - 1) {
+            returning = true;
+        } 
+        if (!returning) {
+            k++;
+        } else {
+            k--;
+        }
+
+        if (k == 0) {
+            returning = false;
+        }
+        
         pos = trajectory[k];
 
         // Explore visibility range
