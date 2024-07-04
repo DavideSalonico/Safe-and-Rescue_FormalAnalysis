@@ -40,6 +40,7 @@ class Grid:
             self.set_value(row, col, value)
             
     def __fill_random_cells_cluster__(self, count, value):
+    # TODO: assure that the fires are properly counted
         tmp_fires = 0
         # Calculate the dimensions of each cluster based on the given percentage
         cluster_rows = max(1, int(self.rows * 0.2))
@@ -88,7 +89,7 @@ class Grid:
                 if self.get_value(row, col) == 2:  # Assuming get_value is a method to get the value of a cell
                     cells_with_value_2.append((row, col))
                           
-        cells_to_restore = random.sample(cells_with_value_2, tmp_fires - count)
+        cells_to_restore = random.sample(cells_with_value_2, tmp_fires - count - 1)
         for row, col in cells_to_restore:
             self.set_value(row, col, 0)
 
