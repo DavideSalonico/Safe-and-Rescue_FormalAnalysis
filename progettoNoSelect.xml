@@ -2,6 +2,7 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>
+/*
 typedef struct { int r; int c; } pos_t;
 
 // Place global declarations here.
@@ -35,60 +36,66 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {{0, 0, 1, 1, 1, 2, 2, 0, 0, 0},
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {{{4, 6}, {3, 6}, {3, 5}, {4, 5}, {4, 6}, {3, 6}, {3, 5}, {4, 5}},
                                                 {{6, 3}, {6, 4}, {6, 5}, {5, 5}, {5, 4}, {4, 4}, OUT_OF_MAP, OUT_OF_MAP}};
 int drone_traj_lengths[N_DRONES] = {4, 6};
+*/
 
-/*
-const int GRID_LENGTH = 20;
-const int GRID_HEIGHT = 25;
+typedef struct { int r; int c; } pos_t;
+const int GRID_LENGTH = 30;
+const int GRID_HEIGHT = 20;
 const int N_EXITS = 10;
-const int N_FIRES = 40;
-const int N_CIVILIANS = 8;
+const int N_FIRES = 60;
+const int N_CIVILIANS = 6;
 const int N_FIRST_RESPONDERS = 5;
-const int N_DRONES = 4;
-const int T_ZR = 7;                      // Time that a Zero Responder needs to help someone
-const int T_FR = 4;                      // Time that a First Responder needs to help someone
-const int T_V = 20;                       // Time before a civilian is supposed to die
+const int N_DRONES = 3;
+const int T_ZR = 6;                      // Time that a Zero Responder needs to help someone       
+const int T_FR = 7;                      // Time that a First Responder needs to help someone      
+const int T_V = 8;                       // Time before a civilian is supposed to die
 const int N_V = 2;                       // Drones' visibility range
-const int MAX_TRAJ = 25;                   // Max trajectory length
+const int MAX_TRAJ = 38;                   // Max trajectory length
 
 // Grid layout
 
 const pos_t OUT_OF_MAP = { -1, -1 };
 int grid[GRID_LENGTH][GRID_HEIGHT] = {
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3},
-  {0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 1},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0}
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 3, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 2, 0, 0, 3, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 1},
+  {2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {2, 2, 2, 2, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {2, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0},
+  {2, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 8, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 8, 0, 1},
+  {1, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+  {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 // Global arrays
 
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
-  {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}, {0, 9}, {0, 10}, {0, 11}, {0, 12}, {0, 13}, {0, 14}, {0, 15}, {0, 16}, {0, 
-17}, {0, 18}, {0, 19}, {0, 20}, {0, 21}, {0, 22}, {0, 23}, {0, 24}},
-  {{5, 0}, {5, 1}, {5, 2}, {5, 3}, {5, 4}, {5, 5}, {5, 6}, {5, 7}, {5, 8}, {5, 9}, {5, 10}, {5, 11}, {5, 12}, {5, 13}, {5, 14}, {5, 15}, {5, 16}, {5, 
-17}, {5, 18}, {5, 19}, {5, 20}, {5, 21}, {5, 22}, {5, 23}, {5, 24}},
-  {{10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4}, {10, 5}, {10, 6}, {10, 7}, {10, 8}, {10, 9}, {10, 10}, {10, 11}, {10, 12}, {10, 13}, {10, 14}, {10, 15}, {10, 16}, {10, 17}, {10, 18}, {10, 19}, {10, 20}, {10, 21}, {10, 22}, {10, 23}, {10, 24}},
-  {{15, 0}, {15, 1}, {15, 2}, {15, 3}, {15, 4}, {15, 5}, {15, 6}, {15, 7}, {15, 8}, {15, 9}, {15, 10}, {15, 11}, {15, 12}, {15, 13}, {15, 14}, {15, 15}, {15, 16}, {15, 17}, {15, 18}, {15, 19}, {15, 20}, {15, 21}, {15, 22}, {15, 23}, {15, 24}}
+  {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}, {0, 8}, {0, 9}, {0, 10}, {0, 11}, {0, 12}, {0, 13}, {0, 14}, {0, 15}, {0, 16}, {0, 17}, {0, 18}, {0, 19}, {0, 18}, {0, 17}, {0, 16}, {0, 15}, {0, 14}, {0, 13}, {0, 12}, {0, 11}, {0, 10}, {0, 9}, {0, 8}, {0, 7}, {0, 6}, {0, 5}, {0, 4}, {0, 3}, {0, 2}, {0, 1}},
+  {{10, 0}, {10, 1}, {10, 2}, {10, 3}, {10, 4}, {10, 5}, {10, 6}, {10, 7}, {10, 8}, {10, 9}, {10, 10}, {10, 11}, {10, 12}, {10, 13}, {10, 14}, {10, 15}, {10, 16}, {10, 17}, {10, 18}, {10, 19}, {10, 18}, {10, 17}, {10, 16}, {10, 15}, {10, 14}, {10, 13}, {10, 12}, {10, 11}, {10, 10}, {10, 9}, {10, 8}, {10, 7}, {10, 6}, {10, 5}, {10, 4}, {10, 3}, {10, 2}, {10, 1}},
+  {{20, 0}, {20, 1}, {20, 2}, {20, 3}, {20, 4}, {20, 5}, {20, 6}, {20, 7}, {20, 8}, {20, 9}, {20, 10}, {20, 11}, {20, 12}, {20, 13}, {20, 14}, {20, 15}, {20, 16}, {20, 17}, {20, 18}, {20, 19}, {20, 18}, {20, 17}, {20, 16}, {20, 15}, {20, 14}, {20, 13}, {20, 12}, {20, 11}, {20, 10}, {20, 9}, {20, 8}, {20, 7}, {20, 6}, {20, 5}, {20, 4}, {20, 3}, {20, 2}, {20, 1}}
 };
-int drone_traj_lengths[N_DRONES] = {25, 25, 25, 25};
-*/
-
+int drone_traj_lengths[N_DRONES] = {38, 38, 38};
 
 typedef int ddp_t;              // DRONE DECISION POLICY
 const ddp_t ALWAYS_ZR = 0;      // Always call the zero responder nearby
@@ -270,7 +277,7 @@ void getNextCellToGoTo(pos_t &amp;pos1, pos_t &amp;pos2, pos_t &amp;ret_pos){
     int x_move, y_move;
     if(pos1.r &gt; pos2.r){
         y_move = -1;
-    } else if(pos1.r = pos2.r){
+    } else if(pos1.r == pos2.r){
         y_move = 0; // No vertical movement
     } else{
         y_move = 1;
@@ -278,7 +285,7 @@ void getNextCellToGoTo(pos_t &amp;pos1, pos_t &amp;pos2, pos_t &amp;ret_pos){
     
     if(pos1.c &gt; pos2.c){
         x_move = -1;
-    } else if(pos1.c = pos2.c){
+    } else if(pos1.c == pos2.c){
         x_move = 0; // No horizontal movement
     } else{
         x_move = 1;
@@ -321,6 +328,7 @@ int traj_l;                          // Trajectory length
 int status = FREE;                   // Status
 int time_to_assist = -1;             // Time to rescue a civilian       
 int civ_id;                          // Id of the civilian rescue
+pos_t next = OUT_OF_MAP;
 
 
 /*
@@ -500,13 +508,15 @@ void movementPolicy(){
         }
         }
     } else if (fr_movement_policy == FIRES){
-         pos_t next = OUT_OF_MAP;
+         //pos_t next = OUT_OF_MAP;
 
-        if (dist(pos, target_fire) &lt;= 1) {
+        if (dist(pos, target_fire) &lt; 1) {
              target_fire = fires[getFurtherFire(pos)]; // change target_fire when arrived close to a fire
         }
         
         getNextCellToGoTo(pos, target_fire, next);
+        
+        
 
         if(isCellFree(next)){
             grid[pos.r][pos.c] = NONE;
@@ -1158,6 +1168,7 @@ void set_civ_pos(){
 
 void init_all() {
     build_exits();
+    build_fires();
     set_FR_pos();
     set_civ_pos();
     compute_traj_lengths();
@@ -1320,7 +1331,7 @@ void step() {
         status = FINISHED;
     } else {
         // Do one step along the trajectory and then go back
-        if (k == traj_l - 1) {
+        /*if (k == traj_l - 1) {
             returning = true;
         } 
         if (!returning) {
@@ -1332,7 +1343,9 @@ void step() {
         if (k == 0) {
             returning = false;
         }
-        
+        */
+        k = (k + 1) % traj_l;
+
         pos = trajectory[k];
 
         // Explore visibility range
@@ -1505,13 +1518,13 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>E&lt;&gt; ( saved &gt;= N_save and total_time &lt;= T_scs )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-06-22 11:02:44 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-04 14:49:05 +0200">
 			</result>
 		</query>
 		<query>
-			<formula>A[] ( total_time &lt;= T_scs imply saved &gt;= N_save )</formula>
+			<formula>A[] ( total_time &gt;= T_scs imply saved &gt;= N_save )</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="failure" type="quality" timestamp="2024-06-22 11:02:47 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-04 14:55:30 +0200">
 			</result>
 		</query>
 		<query>
