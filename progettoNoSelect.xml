@@ -99,10 +99,11 @@ typedef int cmp_t;
 
 typedef int movement_policy_t;            //CIVILIAN/FIRST RESPONDER MOVING POLICY
 const movement_policy_t CLOSER_EXIT = 0;
-const movement_policy_t RANDOM = 1; 
+const movement_policy_t RANDOM = 1;
+const movement_policy_t FIRES = 2; 
 
 ddp_t drone_decision_policy = MIN_TIME;
-movement_policy_t fr_movement_policy = RANDOM;
+movement_policy_t fr_movement_policy = FIRES;
 movement_policy_t civ_moving_policy = CLOSER_EXIT;
 
 // TODO: gestire queste variabili e capire come proporzionarle
@@ -314,11 +315,44 @@ const int NEAR_DANGER = 10;
 clock x;
 int id, k;                           // Id and trajectory index
 pos_t pos;                           // Position in the map
+pos_t target_fire;                   // Position of the fire where the fr is directed
 pos_t trajectory[MAX_TRAJ];          // Trajectory
 int traj_l;                          // Trajectory length
 int status = FREE;                   // Status
 int time_to_assist = -1;             // Time to rescue a civilian       
 int civ_id;                          // Id of the civilian rescue
+
+
+/*
+ * Get closer fire
+ */
+int getCloserFire(pos_t pos){
+    int i, min = MAX_INT;
+    int closer_fire = -1;
+    for(i = 0; i &lt; N_FIRES; i++){
+        if(dist(fires[i], pos) &lt; min){
+            min = dist(fires[i], pos);
+            closer_fire = i;
+        }
+    }
+    return closer_fire;
+}
+
+
+/*
+ * Get further fire
+ */
+int getFurtherFire(pos_t pos){
+    int i, max = -1;
+    int further_fire = -1;
+    for(i = 0; i &lt; N_FIRES; i++){
+        if(dist(fires[i], pos) &gt; max){
+            max = dist(fires[i], pos);
+            further_fire = i;
+        }
+    }
+    return further_fire;
+}
 
 
 /*
@@ -349,6 +383,7 @@ void enter() {
     if (nearCivilianInDanger()) {
         status = NEAR_DANGER;
     }
+    target_fire = fires[getCloserFire(pos)];
 }
 
 /*
@@ -370,36 +405,24 @@ void update_FR_pos() {
     pos_FRs[id] = pos;
 }
 
-/*
- * Get closer fire
- */
-int getCloserFire(pos_t pos){
-    int i, min = MAX_INT;
-    int closer_fire = -1;
-    for(i=0; i &lt; N_EXITS; i++){
-        if(dist(fires[i], pos) &lt; min){
-            min = dist(fires[i], pos);
-            closer_fire = i;
-        }
-    }
-    return closer_fire;
-}
-
 // TODO: da sistemare, aggiornare posizione se già vicino ad un fuoco
 /*
  * Step in fire direction, greater probability to find a civilian to help
- */
+ *
 void step_fire(){
     // Check if need to move
     if ((saved+casualties) == N_CIVILIANS) {
         status = FINISHED;
-    } else {
-        pos_t closest_fire = fires[getCloserFire(pos)], next = OUT_OF_MAP;
-        if (pos != closest_fire) {
-            getNextCellToGoTo(pos, closest_fire, next);
-        } else {
-            next = pos;
+    }
+    else {
+        pos_t next = OUT_OF_MAP;
+
+        if (dist(pos, target_fire) &lt;= 1) {
+             target_fire = fires[getFurtherFire(pos)]; // change target_fire when arrived close to a fire
         }
+        
+        getNextCellToGoTo(pos, target_fire, next);
+
         if(isCellFree(next)){
             grid[pos.r][pos.c] = NONE;
             pos = next;
@@ -408,6 +431,7 @@ void step_fire(){
         update_FR_pos();
     }
 }
+*/
 
 
 void movementPolicy(){
@@ -475,6 +499,20 @@ void movementPolicy(){
             tries++;
         }
         }
+    } else if (fr_movement_policy == FIRES){
+         pos_t next = OUT_OF_MAP;
+
+        if (dist(pos, target_fire) &lt;= 1) {
+             target_fire = fires[getFurtherFire(pos)]; // change target_fire when arrived close to a fire
+        }
+        
+        getNextCellToGoTo(pos, target_fire, next);
+
+        if(isCellFree(next)){
+            grid[pos.r][pos.c] = NONE;
+            pos = next;
+            grid[pos.r][pos.c] = FIRST_R;
+        }
     }
 
 }
@@ -486,7 +524,7 @@ void step() {
     if ((saved+casualties) == N_CIVILIANS) {
         status = FINISHED;
     } else {
-        // Random policy
+        // Random policy TO CHANGE
         movementPolicy();
 
         update_FR_pos();
