@@ -441,6 +441,33 @@ void step_fire(){
 }
 */
 
+pos_t getAlternativeNext(pos_t next){
+    pos_t alt1 = OUT_OF_MAP;
+    pos_t neighbors[3][3];
+    int i, j;
+    for(i = 0; i &lt; 3; i++){
+        for(j = 0; j &lt; 3; j++){
+            if (pos.r + i - 1&gt;= 0 &amp;&amp; pos.r + i - 1&lt; GRID_HEIGHT &amp;&amp; pos.c + j - 1&gt;= 0 &amp;&amp; pos.c + j - 1&lt; GRID_LENGTH){
+                neighbors[i][j].r = pos.r + i - 1; 
+                neighbors[i][j].c = pos.c + j - 1; 
+            }
+                
+            else neighbors[i][j] = OUT_OF_MAP;
+        }
+    }
+
+    for(i = 0; i &lt; 3; i++){
+        for(j = 0; j &lt; 3; j++){
+            if(neighbors[i][j] != OUT_OF_MAP &amp;&amp; isCellFree(neighbors[i][j]) &amp;&amp; dist(target_fire, neighbors[i][j]) == dist(target_fire, next)){
+                alt1.r = neighbors[i][j].r;
+                alt1.c = neighbors[i][j].c;
+            }
+        }
+    }
+
+    return alt1;
+}
+
 
 void movementPolicy(){
     int tries = 0;
@@ -508,20 +535,27 @@ void movementPolicy(){
         }
         }
     } else if (fr_movement_policy == FIRES){
-         //pos_t next = OUT_OF_MAP;
 
         if (dist(pos, target_fire) &lt; 1) {
              target_fire = fires[getFurtherFire(pos)]; // change target_fire when arrived close to a fire
         }
         
         getNextCellToGoTo(pos, target_fire, next);
-        
-        
 
         if(isCellFree(next)){
             grid[pos.r][pos.c] = NONE;
             pos = next;
             grid[pos.r][pos.c] = FIRST_R;
+        }
+        else{ // case in which next cell is occupied, choose an alternative with the same distance from target_fire
+            pos_t alt1 = getAlternativeNext(next);
+            if(alt1 != OUT_OF_MAP){
+                next = alt1;
+                grid[pos.r][pos.c] = NONE;
+                pos = next;
+                grid[pos.r][pos.c] = FIRST_R;
+            }
+            
         }
     }
 
