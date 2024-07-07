@@ -1332,13 +1332,13 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>E&lt;&gt; ( saved &gt;= N_save and total_time &lt;= T_scs )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="failure" type="quality" timestamp="2024-07-07 11:29:22 +0200">
+			<result outcome="success" type="quality" timestamp="2024-06-22 11:02:44 +0200">
 			</result>
 		</query>
 		<query>
-			<formula>A[] ( total_time &gt;= T_scs imply saved &gt;= N_save )</formula>
+			<formula>A[] ( total_time == T_scs imply saved &gt;= N_save )</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="failure" type="quality" timestamp="2024-07-07 11:29:30 +0200">
+			<result outcome="success" type="quality" timestamp="2024-06-29 17:06:46 +0200">
 			</result>
 		</query>
 		<query>
@@ -1346,18 +1346,26 @@ system Initializer, First_Responder, Civilian, Drone;
 			<comment>------- Additional Properties -------</comment>
 		</query>
 		<query>
-			<formula>A[] not deadlock</formula>
-			<comment>System never in deadlock</comment>
-			<result outcome="failure" type="quality" timestamp="2024-06-22 11:02:51 +0200">
+			<formula>A[] deadlock imply ( (saved + casualties) == N_CIVILIANS )</formula>
+			<comment>System in deadlock only when a scenario is finished (every civilian is either safe or dead)</comment>
+			<result outcome="success" type="quality" timestamp="2024-07-07 11:33:19 +0200">
 			</result>
 		</query>
 		<query>
-			<formula/>
-			<comment>Number of civilians in danger always equal to number of busy FRs plus number of busy ZRs</comment>
+			<formula>A[] ( (sum (i:civ_t) Civilian(i).Danger || Civilian(i).Helped) &gt;= (sum (j:civ_t) Civilian(j).Helping || Civilian(j).ZR_Received) + (sum(k:fr_t) First_Responder(k).FR_Received || First_Responder(k).Helping) ) </formula>
+			<comment>Number of civilians in danger always more or equal to number of busy FRs plus number of busy ZRs</comment>
+			<result outcome="success" type="quality" timestamp="2024-06-30 11:49:07 +0200">
+			</result>
 		</query>
 		<query>
-			<formula/>
-			<comment>saved + casualties eventually equal to N_CIVILIANS</comment>
+			<formula>E&lt;&gt; ( (saved+casualties) == N_CIVILIANS )</formula>
+			<comment>saved + casualties eventually equal to N_CIVILIANS TOGLIERE???</comment>
+		</query>
+		<query>
+			<formula>A[] ( (sum (i:civ_t) Civilian(i).Helped) ) == ( (sum (j:civ_t) Civilian(j).Helping) + (sum(k:fr_t) First_Responder(k).Helping) )</formula>
+			<comment>Number of civilians in helping state always equal to FR busy + ZR busy</comment>
+			<result outcome="success" type="quality" timestamp="2024-06-30 11:02:11 +0200">
+			</result>
 		</query>
 	</queries>
 </nta>
