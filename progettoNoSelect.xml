@@ -63,34 +63,25 @@ int grid[GRID_LENGTH][GRID_HEIGHT] = {
   {2, 0, 0, 0, 0}
 };
 
-// Global arrays
-
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
   {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 3}, {0, 2}, {0, 1}}
 };
 int drone_traj_lengths[N_DRONES] = {8};
 
-typedef int ddp_t;              // DRONE DECISION POLICY
-const ddp_t ALWAYS_ZR = 0;      // Always call the zero responder nearby
-const ddp_t ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
-const ddp_t MIN_TIME = 2;       // Call zr or fr based on their total helping time
+// DRONE DECISION POLICIES
+const int ALWAYS_ZR = 0;      // Always call the zero responder nearby
+const int ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
+const int MIN_TIME = 2;       // Call zr or fr based on their total helping time            
 
-typedef int cmp_t;             
+// CIVILIAN/FIRST RESPONDER MOVING POLICY
+const int CLOSER_EXIT = 0;
+const int RANDOM = 1;
+const int FIRES = 2; 
 
-typedef int movement_policy_t;            //CIVILIAN/FIRST RESPONDER MOVING POLICY
-const movement_policy_t CLOSER_EXIT = 0;
-const movement_policy_t RANDOM = 1;
-const movement_policy_t FIRES = 2; 
-
-ddp_t drone_decision_policy = MIN_TIME;
-movement_policy_t fr_movement_policy = FIRES;
-movement_policy_t civ_moving_policy = CLOSER_EXIT;
-
-// TODO: gestire queste variabili e capire come proporzionarle
-// Const for model checking
-const int N_save = 3;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
-const int T_scs = 20;                     // Time to check properties
-clock total_time;
+// SET POLICIES
+int drone_decision_policy = MIN_TIME;
+int fr_movement_policy = FIRES;
+int civ_moving_policy = CLOSER_EXIT;
 
 // Global types
 typedef int [0, N_DRONES-1] dr_t;
@@ -98,20 +89,6 @@ typedef int [0, N_FIRST_RESPONDERS-1] fr_t;
 typedef int [0, N_CIVILIANS-1] civ_t;
 
 // Map constants
-
-/*
-const int OUTSIDE      = -1;
-const int NONE         =  0;
-const int EXIT         =  1;             // Exit
-const int FIRE         =  2;             // Fire
-const int SURVIVOR     =  3;             // Survivor (civilian not in danger)
-const int FIRST_R      =  4;             // First Responder not busy
-const int FIRST_R_BUSY =  8;             // First Responder busy helping someone
-const int ZERO_R       =  5;             // Zero Responder 
-const int ASSISTED     =  6;             // Civilian in danger being assisted
-const int NEED_ASSIST  =  7;             // Civilian in danger in need for assistance
-const int CONTACTING   =  9;             // survivor busy calling a first responder/waiting for him to rescue someone in danger
-*/
 const int OUTSIDE      = -1;             // dead or saved
 const int NONE         =  0;             
 const int EXIT         =  1;             // Exit
@@ -127,6 +104,15 @@ const int FIRST_R_BUSY_NEAR_DANGER =  10;// First Responder busy helping someone
 
 const int MAX_INT =  32767; //from doc
 
+// Global variables
+int casualties = 0;
+int saved = 0;
+// TODO: gestire queste variabili e capire come proporzionarle
+// Const for model checking
+const int N_save = 3;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
+const int T_scs = 20;                     // Time to check properties
+clock total_time;
+
 // Channels
 broadcast chan init_done;
 chan helping[N_CIVILIANS];
@@ -137,19 +123,13 @@ broadcast chan civ_dead[N_CIVILIANS];
 urgent chan call_zero_resp[N_CIVILIANS];
 urgent chan call_first_resp[N_CIVILIANS];
 
-
-// Global variables
-int casualties = 0;
-int saved = 0;
-
-// Global arrays
+// Global arrays (built by initializer)
 pos_t exits[N_EXITS];
 pos_t fires[N_FIRES];
 pos_t pos_FRs[N_FIRST_RESPONDERS];
 pos_t pos_civilians[N_CIVILIANS];
 
 // Exits, Humans, Drones can have arbitrary positions.
-// TODO: check if just a position is ok or we need an array
 const int STEP_TIME = 1;                 // Time to step
 pos_t pos_to_save = OUT_OF_MAP;
 int caller_id = -1;
@@ -164,7 +144,7 @@ int directions[8][2] = {
         {-1, 1}   // Move up-right
 };
 
-/* GLOBAL UTILITY FUNCTIONS ****************/
+/**************** GLOBAL UTILITY FUNCTIONS ****************/
 
 /*
  * Get the value of a cell of the map given its pos_t coordinates.
@@ -209,7 +189,7 @@ int dist(pos_t src, pos_t dest){
  * Compute distance from two positions in the grid (NO diagonal moves allowed).
  */
 /*
-int dist2(pos_t src, pos_t dest){
+int dist_man(pos_t src, pos_t dest){
     int x_dist = abs(dest.r - src.r);
     int y_dist = abs(dest.c - src.c);
     return x_dist + y_dist;
@@ -281,13 +261,7 @@ bool isCellFree(pos_t p) {
 	<template>
 		<name>First_Responder</name>
 		<parameter>fr_t p_id</parameter>
-		<declaration>/*
-const int FREE = 0;
-const int NEAR_DANGER = 1;
-const int CALLED = 2;
-const int FINISHED = 3;
-*/
-const int FINISHED = -1;
+		<declaration>const int FINISHED = -1;
 const int FREE = 8;
 const int CALLED = 9;
 const int NEAR_DANGER = 10;
@@ -386,34 +360,9 @@ void update_FR_pos() {
     pos_FRs[id] = pos;
 }
 
-// TODO: da sistemare, aggiornare posizione se già vicino ad un fuoco
 /*
- * Step in fire direction, greater probability to find a civilian to help
- *
-void step_fire(){
-    // Check if need to move
-    if ((saved+casualties) == N_CIVILIANS) {
-        status = FINISHED;
-    }
-    else {
-        pos_t next = OUT_OF_MAP;
-
-        if (dist(pos, target_fire) &lt;= 1) {
-             target_fire = fires[getFurtherFire(pos)]; // change target_fire when arrived close to a fire
-        }
-        
-        getNextCellToGoTo(pos, target_fire, next);
-
-        if(isCellFree(next)){
-            grid[pos.r][pos.c] = NONE;
-            pos = next;
-            grid[pos.r][pos.c] = FIRST_R;
-        }
-        update_FR_pos();
-    }
-}
-*/
-
+ * Return an alternative position wrt to next. This function is used when the next cell to go is occupied
+ */
 pos_t getAlternativeNext(pos_t next){
     pos_t alt1 = OUT_OF_MAP;
     pos_t neighbors[3][3];
@@ -441,7 +390,10 @@ pos_t getAlternativeNext(pos_t next){
     return alt1;
 }
 
-
+/*
+ * Calculate next move based on a given policy. Policies implemented are FIRES and RANDOM (not verifiable queries when using random with select on edges).
+ * Refer to report for further details.
+ */ 
 void movementPolicy(){
     int tries = 0;
     bool valid_step_found = false;
@@ -534,14 +486,12 @@ void movementPolicy(){
 
 }
 
-// TODO: change to put moveFr??
 void step() {
 
     // Check if need to move
     if ((saved+casualties) == N_CIVILIANS) {
         status = FINISHED;
     } else {
-        // Random policy TO CHANGE
         movementPolicy();
 
         update_FR_pos();
@@ -553,7 +503,6 @@ void step() {
 }
 
 
-// TODO capire come gestire la precenza tra near danger e la ricezione della richiesta di aiuto: dovrebbe essere l'ordine di dichiarazione dei chan
 /*
  * Update global grid by setting FR busy or not
  */
@@ -566,28 +515,6 @@ void updateGrid() {
         grid[pos.r][pos.c] = FIRST_R;
     }
 }
-
-// TODO: Change it in order to properly set the pos_to_save
-/*
-
- * Step function that follows a specified trajectory. Updates grid and global FR position array and checks new status
- */
-/*
-void step() {
-    k = (k+1) % traj_l;
-    if(isCellFree(trajectory[k])){
-        grid[pos.r][pos.c] = NONE;
-        pos = trajectory[k];
-        grid[pos.r][pos.c] = FIRST_R;   
-    } else {
-        k = k - 1;
-    }
-    update_FR_pos();
-    if (nearCivilianInDanger()) {
-        status = NEAR_DANGER;
-    }
-}
-*/
 
 /*
  * Update when a help request is received
@@ -704,16 +631,7 @@ timeToAssist()</label>
 	<template>
 		<name>Civilian</name>
 		<parameter>civ_t p_id</parameter>
-		<declaration>/*
-const int SAVED = 1;
-const int DANGER = 2;
-const int STEP = 3;
-const int ZERO_RESP = 4;
-const int CIV_ASSISTED = 5;
-const int DEAD = 6;
-const int BUSY = 7;
-*/
-const int SAVED = -1;
+		<declaration>const int SAVED = -1;
 const int DEAD = -1;
 const int STEP = 3;
 const int ZERO_RESP = 4;
@@ -730,14 +648,6 @@ int civ_need_id;           // Id of the civilian to help (ZR case)
 int fr_id;                 // Id of the FR to call
 int delta_r, delta_c;
 
-/*
- * Golden rule to check:
- * for every transition check clock update (if necessary), internal status update, grid update
- */
-
-// TODO: clean pos_to_save
-// TODO: occhio alla direzione verso le uscite
-// TODO: togliere ridondanza sulla posizione
 /*
  * Get closer exit
  */
@@ -774,6 +684,9 @@ int computeStatus(int px, int py){
     return STEP;
 }
 
+/*
+ * Determine next move based on the given policy
+ */
 void movementPolicy(){
     pos_t next_cell;
     pos_t ret_pos = OUT_OF_MAP;
@@ -793,6 +706,9 @@ void movementPolicy(){
 
 }
 
+/*
+ * Move and update grid
+ */ 
 void step() {
 
     movementPolicy();
@@ -800,7 +716,7 @@ void step() {
     status = computeStatus(pos.r, pos.c);
     
     if (status == DANGER) grid[pos.r][pos.c] = NEED_ASSIST;
-
+    
     pos_civilians[id] = pos;
 }
 
@@ -1173,6 +1089,9 @@ void set_civ_pos(){
     }
 }
 
+/*
+ * Initialize all the global data structures used by the entities
+ */
 void init_all() {
     build_exits();
     build_fires();
@@ -1196,13 +1115,7 @@ void init_all() {
 	<template>
 		<name x="9" y="9">Drone</name>
 		<parameter>dr_t p_id</parameter>
-		<declaration>/*
-const int STEP = 1;
-const int DRONE_ZERO_R = 2;
-const int DRONE_FIRST_R = 3;
-const int FINISHED = 4;
-*/
-const int FINISHED = -1;
+		<declaration>const int FINISHED = -1;
 const int STEP = 11;
 const int DRONE_ZERO_R = 12;
 const int DRONE_FIRST_R = 13;
@@ -1216,9 +1129,6 @@ int status = STEP;                     // Status
 pos_t pos;                             // Position
 int zr;                                // ZeroResponder 
 bool returning = false;
-
-// TODO: check the right status even when entering in the map
-// TODO: bug when signaling zr and two in need in range
 
 /*
  * Enter the map at the entry point.
@@ -1325,7 +1235,6 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
 }
 
 
-// TODO: Change it in order to properly set the pos_to_save
 /*
  * Step function that follows a specified trajectory (for random decision)
  */
@@ -1337,52 +1246,8 @@ void step() {
     if (saved+casualties == N_CIVILIANS) {
         status = FINISHED;
     } else {
-        // Do one step along the trajectory and then go back
-        /*if (k == traj_l - 1) {
-            returning = true;
-        } 
-        if (!returning) {
-            k++;
-        } else {
-            k--;
-        }
-
-        if (k == 0) {
-            returning = false;
-        }
-        */
-        k = (k + 1) % traj_l;
-
-        pos = trajectory[k];
-
-        // Explore visibility range
-        civ_in_danger = civilianInDangerInRange();
-        potential_zr = zeroResponderInRange();
-
-        // Find id of the civilian to call (either as a zr either to call a fr)
-        zr = get_civ_idx(potential_zr);
-        if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
-            pos_to_save = civ_in_danger;
-            decisionPolicy(civ_in_danger, potential_zr);
-        }
-    }
-}
-
-// TODO: Change it in order to properly set the pos_to_save
-/*
- * Step function that follows a specified trajectory (for min time decision)
- */
-/*
-void step() {
-    int i;
-    pos_t civ_in_danger, potential_zr;
-
-    // Check if need to move
-    if (saved+casualties == N_CIVILIANS) {
-        status = FINISHED;
-    } else {
         // Do one step along the trajectory
-        k = (k+1) % traj_l;
+        k = (k + 1) % traj_l;
         pos = trajectory[k];
 
         // Explore visibility range
@@ -1397,65 +1262,7 @@ void step() {
         }
     }
 }
-*/
-
-
-/*
- * Decide to ask for direct help or to call first responder (min time decision)
- */
-/*
-void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
-    int dec, i, count = 0;
-    pos_t closerFr;
-    for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
-        if(cell(pos_FRs[i]) == FIRST_R){
-            count++;
-        }
-    }
-    if(count == 0){
-        dec = 0;
-    }else{
-        closerFr = getCloserFR(civInDanger);
-        if((dist(closerFr, civInDanger) + dist(potentialZr, closerFr) + T_FR) &lt;= (dist(potentialZr, civInDanger) + T_ZR)){
-            dec = 1;
-        }else{
-            dec = 0;
-        }
-    }
-
-    if(dec == 0){
-        status = DRONE_ZERO_R;
-    } 
-    else{
-        status = DRONE_FIRST_R;
-    }
-}
-*/
-
-/*
- * Decide to ask for direct help or to call first responder (if a first responder is free always call one)
- */
-/*
-void decisionPolicy() {
-    int dec, i, count = 0;
-    for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
-        if(cell(pos_FRs[i]) == FIRST_R){
-            count++;
-        }
-    }
-    if(count == 0){
-        dec = 0;
-    }else{
-        dec = 1;
-    }
-    if(dec == 0){
-        status = DRONE_ZERO_R;
-    } 
-    else{
-        status = DRONE_FIRST_R;
-    }
-}
-*/</declaration>
+</declaration>
 		<location id="id51" x="-1045" y="-76">
 		</location>
 		<location id="id52" x="-765" y="-76">
@@ -1525,13 +1332,13 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>E&lt;&gt; ( saved &gt;= N_save and total_time &lt;= T_scs )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-04 14:49:05 +0200">
+			<result outcome="failure" type="quality" timestamp="2024-07-07 11:29:22 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( total_time &gt;= T_scs imply saved &gt;= N_save )</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-04 14:55:30 +0200">
+			<result outcome="failure" type="quality" timestamp="2024-07-07 11:29:30 +0200">
 			</result>
 		</query>
 		<query>
