@@ -199,17 +199,17 @@ class Grid:
         print(declarations)
         
 
-grid = Grid(rows=10, 
-            cols=10, 
-            n_exits=4, 
-            n_fires=9, 
-            n_civilians=9, 
-            n_frs=1, 
-            t_zr=5, 
+grid = Grid(rows=30, 
+            cols=30, 
+            n_exits=30, 
+            n_fires=150, 
+            n_civilians=40, 
+            n_frs=12, 
+            t_zr=7, 
             t_fr=3, 
-            t_v=8, 
-            n_drones=4, 
-            n_v=2)
+            t_v=10, 
+            n_drones=8, 
+            n_v=3)
 #grid.display()
 #grid.displayDrones()
 grid.generateDeclarations()
