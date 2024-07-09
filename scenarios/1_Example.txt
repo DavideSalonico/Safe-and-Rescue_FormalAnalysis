@@ -1,0 +1,42 @@
+typedef struct { int r; int c; } pos_t;
+const int GRID_LENGTH = 10;
+const int GRID_HEIGHT = 10;
+const int N_EXITS = 4;
+const int N_FIRES = 9;
+const int N_CIVILIANS = 9;
+const int N_FIRST_RESPONDERS = 1;
+const int N_DRONES = 4;
+const int T_ZR = 5;                      // Time that a Zero Responder needs to help someone
+const int T_FR = 3;                      // Time that a First Responder needs to help someone
+const int T_V = 8;                       // Time before a civilian is supposed to die
+const int N_V = 2;                       // Drones' visibility range
+const int MAX_TRAJ = 8;                  // Max trajectory length
+
+// Grid layout
+
+const pos_t OUT_OF_MAP = { -1, -1 };
+int grid[GRID_LENGTH][GRID_HEIGHT] = {
+  {0, 3, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
+  {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
+  {0, 0, 0, 3, 2, 2, 2, 0, 0, 0},
+  {1, 0, 0, 0, 2, 2, 3, 0, 0, 1},
+  {1, 0, 3, 0, 0, 0, 8, 0, 0, 1},
+  {0, 0, 0, 0, 0, 3, 0, 0, 3, 0},
+  {0, 0, 0, 0, 3, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 3, 0, 0},
+  {0, 0, 3, 0, 0, 0, 0, 0, 0, 0}
+};
+
+// Global arrays
+
+pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
+  {{2, 1}, {3, 1}, {3, 2}, {3, 3}, {2, 3}, {1, 3}, {1, 2}, {1, 1}},
+  {{1, 8}, {1, 7}, {1, 6}, {2, 6}, {3, 6}, {3, 7}, {3, 8}, {2, 8}},
+  {{6, 1}, {7, 1}, {8, 1}, {8, 2}, {8, 3}, {7, 3}, {6, 3}, {6, 2}},
+  {{6, 6}, {6, 7}, {6, 8}, {7, 8}, {8, 8}, {8, 7}, {8, 6}, {7, 6}}
+};
+int drone_traj_lengths[N_DRONES] = {8, 8, 8, 8};
+
+T_scs = 9
+N_save = 7

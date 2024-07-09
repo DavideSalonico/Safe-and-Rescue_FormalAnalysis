@@ -89,7 +89,7 @@ class Grid:
                 if self.get_value(row, col) == 2:  # Assuming get_value is a method to get the value of a cell
                     cells_with_value_2.append((row, col))
                           
-        cells_to_restore = random.sample(cells_with_value_2, tmp_fires - count - 1)
+        cells_to_restore = random.sample(cells_with_value_2, tmp_fires - count )
         for row, col in cells_to_restore:
             self.set_value(row, col, 0)
 
@@ -199,7 +199,17 @@ class Grid:
         print(declarations)
         
 
-grid = Grid(rows=30, cols=20, n_exits=10, n_fires=60, n_civilians=6, n_frs=5, t_zr=6, t_fr=7, t_v=8, n_drones=3, n_v=2)
+grid = Grid(rows=10, 
+            cols=10, 
+            n_exits=4, 
+            n_fires=9, 
+            n_civilians=9, 
+            n_frs=1, 
+            t_zr=5, 
+            t_fr=3, 
+            t_v=8, 
+            n_drones=4, 
+            n_v=2)
 #grid.display()
 #grid.displayDrones()
 grid.generateDeclarations()
