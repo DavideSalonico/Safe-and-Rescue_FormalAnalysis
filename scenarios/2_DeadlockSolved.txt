@@ -44,3 +44,9 @@ total_time = 19
 MIN_TIME
 --> priorità uscita sul fuoco
 (--> Politica fires fr)
+
+parametri giusti:
+N_perc = 50;
+T_scs = 7;
+
+con 6 la A<> fallisce! si potrebbe commentare nel report
