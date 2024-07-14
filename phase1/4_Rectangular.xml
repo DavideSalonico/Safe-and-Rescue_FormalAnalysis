@@ -2,45 +2,53 @@
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
 	<declaration>typedef struct { int r; int c; } pos_t;
-const int GRID_LENGTH = 10;
-const int GRID_HEIGHT = 10;
-const int N_EXITS = 4;
-const int N_FIRES = 9;
-const int N_CIVILIANS = 9;
-const int N_FIRST_RESPONDERS = 1;
+const int GRID_LENGTH = 18;
+const int GRID_HEIGHT = 12;
+const int N_EXITS = 14;
+const int N_FIRES = 48;
+const int N_CIVILIANS = 10;
+const int N_FIRST_RESPONDERS = 3;
 const int N_DRONES = 4;
-const int T_ZR = 5;                      // Time that a Zero Responder needs to help someone
+const int T_ZR = 7;                      // Time that a Zero Responder needs to help someone
 const int T_FR = 3;                      // Time that a First Responder needs to help someone
-const int T_V = 8;                       // Time before a civilian is supposed to die
+const int T_V = 10;                       // Time before a civilian is supposed to die
 const int N_V = 2;                       // Drones' visibility range
-const int MAX_TRAJ = 8;                  // Max trajectory length
+const int MAX_TRAJ = 22;                   // Max trajectory length
 
 // Grid layout
 
 const pos_t OUT_OF_MAP = { -1, -1 };
 int grid[GRID_LENGTH][GRID_HEIGHT] = {
-  {0, 3, 0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
-  {0, 0, 0, 0, 0, 2, 2, 0, 0, 0},
-  {0, 0, 0, 3, 2, 2, 2, 0, 0, 0},
-  {1, 0, 0, 0, 2, 2, 3, 0, 0, 1},
-  {1, 0, 3, 0, 0, 0, 8, 0, 0, 1},
-  {0, 0, 0, 0, 0, 3, 0, 0, 3, 0},
-  {0, 0, 0, 0, 3, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 3, 0, 0},
-  {0, 0, 3, 0, 0, 0, 0, 0, 0, 0}
+    {2, 0, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1},
+    {2, 2, 2, 2, 0, 3, 0, 0, 0, 0, 0, 0},
+    {2, 2, 2, 2, 0, 0, 3, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, 0, 3, 8, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 3, 0, 3, 0, 0, 8, 0, 0, 1},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 2, 2},
+    {1, 0, 3, 8, 2, 2, 0, 0, 0, 0, 2, 0},
+    {1, 0, 0, 0, 2, 2, 0, 0, 0, 0, 2, 2},
+    {0, 3, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0},
+    {0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0},
+    {3, 0, 0, 0, 0, 3, 2, 2, 2, 2, 0, 1},
+    {2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+    {2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 1},
+    {0, 2, 2, 2, 0, 0, 1, 0, 0, 0, 0, 1}
 };
 
 // Global arrays
 
 pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
-  {{2, 1}, {3, 1}, {3, 2}, {3, 3}, {2, 3}, {1, 3}, {1, 2}, {1, 1}},
-  {{1, 8}, {1, 7}, {1, 6}, {2, 6}, {3, 6}, {3, 7}, {3, 8}, {2, 8}},
-  {{6, 1}, {7, 1}, {8, 1}, {8, 2}, {8, 3}, {7, 3}, {6, 3}, {6, 2}},
-  {{6, 6}, {6, 7}, {6, 8}, {7, 8}, {8, 8}, {8, 7}, {8, 6}, {7, 6}}
+    {{2, 0}, {2, 1}, {2, 2}, {2, 3}, {2, 4}, {2, 5}, {2, 6}, {2, 7}, {2, 8}, {2, 9}, {2, 10}, {2, 11}, {2, 10}, {2, 9}, {2, 8}, {2, 7}, {2, 6}, {2, 5}, {2, 4}, {2, 3}, {2, 2}, {2, 1}},
+    {{6, 0}, {6, 1}, {6, 2}, {6, 3}, {6, 4}, {6, 5}, {6, 6}, {6, 7}, {6, 8}, {6, 9}, {6, 10}, {6, 11}, {6, 10}, {6, 9}, {6, 8}, {6, 7}, {6, 6}, {6, 5}, {6, 4}, {6, 3}, {6, 2}, {6, 1}},
+    {{11, 0}, {11, 1}, {11, 2}, {11, 3}, {11, 4}, {11, 5}, {11, 6}, {11, 7}, {11, 8}, {11, 9}, {11, 10}, {11, 11}, {11, 10}, {11, 9}, {11, 8}, {11, 7}, {11, 6}, {11, 5}, {11, 4}, {11, 3}, {11, 2}, {11, 1}},
+    {{15, 0}, {15, 1}, {15, 2}, {15, 3}, {15, 4}, {15, 5}, {15, 6}, {15, 7}, {15, 8}, {15, 9}, {15, 10}, {15, 11}, {15, 10}, {15, 9}, {15, 8}, {15, 7}, {15, 6}, {15, 5}, {15, 4}, {15, 3}, {15, 2}, {15, 1}}
 };
-int drone_traj_lengths[N_DRONES] = {8, 8, 8, 8};
-
+int drone_traj_lengths[N_DRONES] = {22, 22, 22, 22};
+        
 // DRONE DECISION POLICIES
 const int ALWAYS_ZR = 0;      // Always call the zero responder nearby
 const int ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
@@ -52,7 +60,7 @@ const int RANDOM = 1;
 const int FIRES = 2; 
 
 // SET POLICIES
-int drone_decision_policy = MIN_TIME;
+int drone_decision_policy = ALWAYS_ZR;
 int fr_movement_policy = FIRES;
 int civ_moving_policy = CLOSER_EXIT;
 
@@ -62,7 +70,7 @@ int saved = 0;
 
 // Const for model checking
 const int N_perc = 80;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
-const int T_scs = 11;                     // Time to check properties
+const int T_scs = 5;                     // Time to check properties
 clock total_time;
 
 //*************************************************************************************************************************************************************************************************************
@@ -91,13 +99,13 @@ const int MAX_INT =  32767; //from doc
 
 // Channels
 broadcast chan init_done;
-chan helping[N_CIVILIANS];
-urgent chan FR_help_req[N_FIRST_RESPONDERS];
+broadcast chan helping[N_CIVILIANS];
+urgent broadcast chan FR_help_req[N_FIRST_RESPONDERS];
 broadcast chan saved_by_FR[N_CIVILIANS];
 broadcast chan saved_by_ZR[N_CIVILIANS];
 broadcast chan civ_dead[N_CIVILIANS]; 
-urgent chan call_zero_resp[N_CIVILIANS];
-urgent chan call_first_resp[N_CIVILIANS];
+urgent broadcast chan call_zero_resp[N_CIVILIANS];
+urgent broadcast chan call_first_resp[N_CIVILIANS];
 
 // Global arrays (built by initializer)
 pos_t exits[N_EXITS];
@@ -1100,6 +1108,9 @@ pos_t pos;                             // Position
 int zr;                                // ZeroResponder 
 bool returning = false;
 
+pos_t found_zr = OUT_OF_MAP;
+pos_t found = OUT_OF_MAP;
+
 /*
  * Enter the map at the entry point.
  */
@@ -1122,6 +1133,7 @@ pos_t civilianInDangerInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == NEED_ASSIST){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
+                found = ret_pos;
                 return ret_pos;
             }
         }
@@ -1140,6 +1152,7 @@ pos_t zeroResponderInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == SURVIVOR){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
+                found_zr = ret_pos;
                 return ret_pos;
             }
         }
@@ -1173,11 +1186,10 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
         if(cell(pos_FRs[i]) == FIRST_R){
             count++;
         }
-    }
+    } //if no first_responder free force call zero_responder 
     if(count == 0){
         dec = 0;
-
-    } // Compute the action based on the given policy
+    }  // Compute the action based on the given policy   
     else if(drone_decision_policy == ALWAYS_ZR){
         dec = 0;
     }
@@ -1300,13 +1312,13 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>E&lt;&gt; ( (saved * 100 / N_CIVILIANS) &gt;= N_perc and total_time &lt;= T_scs )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:18:45 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-13 16:04:05 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( total_time == T_scs imply (saved * 100 / N_CIVILIANS) &gt;= N_perc )</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:19:06 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-13 17:14:36 +0200">
 			</result>
 		</query>
 		<query>
@@ -1316,19 +1328,19 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>A[] deadlock imply ( (saved + casualties) == N_CIVILIANS )</formula>
 			<comment>System in deadlock only when a scenario is finished (every civilian is either safe or dead)</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:19:59 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-13 17:29:04 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( (sum (i:civ_t) Civilian(i).Danger || Civilian(i).Helped) &gt;= (sum (j:civ_t) Civilian(j).Helping || Civilian(j).ZR_Received) + (sum(k:fr_t) First_Responder(k).FR_Received || First_Responder(k).Helping) ) </formula>
 			<comment>Number of civilians in danger always more or equal to number of busy FRs plus number of busy ZRs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:20:59 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-13 17:34:25 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( (sum (i:civ_t) Civilian(i).Helped) ) == ( (sum (j:civ_t) Civilian(j).Helping) + (sum(k:fr_t) First_Responder(k).Helping) )</formula>
 			<comment>Number of civilians in helping state always equal to FR busy + ZR busy</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:21:16 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-13 17:39:27 +0200">
 			</result>
 		</query>
 	</queries>

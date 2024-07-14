@@ -114,11 +114,11 @@ class Grid:
             #print("Calculating trajectory for drone " + str(i))
             drone_trajectory = []
             for c in range(self.cols):
-                drone_trajectory.append((i * self.rows // self.n_drones, c))
+                drone_trajectory.append((i * self.rows // self.n_drones + self.n_v, c))
                 #print(drone_trajectory)
             
             for c in range(self.cols - 2, 0, -1):
-                drone_trajectory.append((i * self.rows // self.n_drones, c))
+                drone_trajectory.append((i * self.rows // self.n_drones + self.n_v, c))
                 
             trajectories.append(drone_trajectory)
         return trajectories
@@ -201,15 +201,14 @@ class Grid:
 
 grid = Grid(rows=30, 
             cols=30, 
-            n_exits=30, 
+            n_exits=20, 
             n_fires=150, 
-            n_civilians=40, 
-            n_frs=12, 
-            t_zr=7, 
-            t_fr=3, 
-            t_v=10, 
-            n_drones=8, 
-            n_v=3)
-#grid.display()
-#grid.displayDrones()
+            n_civilians=8, 
+            n_frs=2, 
+            t_zr=10, 
+            t_fr=5, 
+            t_v=20, 
+            n_drones=6, 
+            n_v=2)
+
 grid.generateDeclarations()
