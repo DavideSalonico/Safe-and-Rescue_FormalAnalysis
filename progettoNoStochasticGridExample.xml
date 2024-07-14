@@ -41,17 +41,6 @@ pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
 };
 int drone_traj_lengths[N_DRONES] = {8, 8, 8, 8};
 
-// Global variables
-int casualties = 0;
-int saved = 0;
-// TODO: gestire queste variabili e capire come proporzionarle
-// Const for model checking
-const int N_perc = 80;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
-const int T_scs = 11;                     // Time to check properties
-clock total_time;
-
-//*************************************************************************************************************************************************************************************************************
-
 // DRONE DECISION POLICIES
 const int ALWAYS_ZR = 0;      // Always call the zero responder nearby
 const int ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
@@ -66,6 +55,17 @@ const int FIRES = 2;
 int drone_decision_policy = MIN_TIME;
 int fr_movement_policy = FIRES;
 int civ_moving_policy = CLOSER_EXIT;
+
+// Global variables
+int casualties = 0;
+int saved = 0;
+
+// Const for model checking
+const int N_perc = 80;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
+const int T_scs = 11;                     // Time to check properties
+clock total_time;
+
+//*************************************************************************************************************************************************************************************************************
 
 // Global types
 typedef int [0, N_DRONES-1] dr_t;
@@ -109,17 +109,6 @@ pos_t pos_civilians[N_CIVILIANS];
 const int STEP_TIME = 1;                 // Time to step
 pos_t pos_to_save = OUT_OF_MAP;
 int caller_id = -1;
-// TODO: cancellare se non modifichiamo step RANDOM
-int directions[8][2] = {
-        {1, 0},   // Move down
-        {-1, 0},  // Move up
-        {0, -1},  // Move left
-        {0, 1},   // Move right
-        {1, -1},  // Move down-left
-        {1, 1},   // Move down-right
-        {-1, -1}, // Move up-left
-        {-1, 1}   // Move up-right
-};
 
 /**************** GLOBAL UTILITY FUNCTIONS ****************/
 

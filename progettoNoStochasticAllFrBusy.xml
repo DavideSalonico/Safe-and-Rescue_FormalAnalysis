@@ -67,7 +67,7 @@ int civ_moving_policy = CLOSER_EXIT;
 // Global variables
 int casualties = 0;
 int saved = 0;
-// TODO: gestire queste variabili e capire come proporzionarle
+
 // Const for model checking
 const int N_perc = 30;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
 const int T_scs = 23;                     // Time to check properties
@@ -117,17 +117,6 @@ pos_t pos_civilians[N_CIVILIANS];
 const int STEP_TIME = 1;                 // Time to step
 pos_t pos_to_save = OUT_OF_MAP;
 int caller_id = -1;
-// TODO: cancellare se non modifichiamo step RANDOM
-int directions[8][2] = {
-        {1, 0},   // Move down
-        {-1, 0},  // Move up
-        {0, -1},  // Move left
-        {0, 1},   // Move right
-        {1, -1},  // Move down-left
-        {1, 1},   // Move down-right
-        {-1, -1}, // Move up-left
-        {-1, 1}   // Move up-right
-};
 
 /**************** GLOBAL UTILITY FUNCTIONS ****************/
 
