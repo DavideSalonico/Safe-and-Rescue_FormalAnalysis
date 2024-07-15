@@ -12,7 +12,6 @@ const int N_DRONES = 4;
 const int T_ZR = 7;                      // Time that a Zero Responder needs to help someone
 const int T_FR = 3;                      // Time that a First Responder needs to help someone
 const int T_V = 10;                       // Time before a civilian is supposed to die
-const int N_V = 2;                       // Drones' visibility range
 const int MAX_TRAJ = 22;                   // Max trajectory length
 
 // Grid layout
@@ -48,6 +47,7 @@ pos_t drone_trajectories[N_DRONES][MAX_TRAJ] = {
     {{15, 0}, {15, 1}, {15, 2}, {15, 3}, {15, 4}, {15, 5}, {15, 6}, {15, 7}, {15, 8}, {15, 9}, {15, 10}, {15, 11}, {15, 10}, {15, 9}, {15, 8}, {15, 7}, {15, 6}, {15, 5}, {15, 4}, {15, 3}, {15, 2}, {15, 1}}
 };
 int drone_traj_lengths[N_DRONES] = {22, 22, 22, 22};
+int drone_ranges[N_DRONES] = {2, 2, 2, 2};
         
 // DRONE DECISION POLICIES
 const int ALWAYS_ZR = 0;      // Always call the zero responder nearby
@@ -1106,10 +1106,7 @@ int k;                                 // Trajectory index
 int status = STEP;                     // Status
 pos_t pos;                             // Position
 int zr;                                // ZeroResponder 
-bool returning = false;
-
-pos_t found_zr = OUT_OF_MAP;
-pos_t found = OUT_OF_MAP;
+int N_V;                               // Visibility Range
 
 /*
  * Enter the map at the entry point.
@@ -1120,6 +1117,7 @@ void enter() {
     pos = trajectory[k];
     k = 0;
     traj_l = drone_traj_lengths[id];
+    N_V = drone_ranges[id]; 
 }
 
 /*
@@ -1133,7 +1131,6 @@ pos_t civilianInDangerInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == NEED_ASSIST){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
-                found = ret_pos;
                 return ret_pos;
             }
         }
@@ -1152,7 +1149,6 @@ pos_t zeroResponderInRange(){
             pos_t pos = trajectory[k];
             if (cell_int(pos.r + i, pos.c + j) == SURVIVOR){
                 pos_t ret_pos = {pos.r + i, pos.c + j};
-                found_zr = ret_pos;
                 return ret_pos;
             }
         }
