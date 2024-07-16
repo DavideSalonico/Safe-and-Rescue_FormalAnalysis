@@ -1207,7 +1207,7 @@ pos_t getCloserFR(pos_t pos){
 }
 
 /*
- * Decide to ask for direct help or to call first responder (Random decision)
+ * Decide to ask for direct help or to call first responder
  */
 void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
     int dec, i, count = 0;
@@ -1247,7 +1247,7 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
 }
 
 /*
- * Step function that follows a specified trajectory (for random decision)
+ * Step function that follows a specified trajectory
  */
 void step() {
     int i;

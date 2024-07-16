@@ -52,7 +52,8 @@ int drone_ranges[N_DRONES] = {2, 2, 2, 2};
 // DRONE DECISION POLICIES
 const int ALWAYS_ZR = 0;      // Always call the zero responder nearby
 const int ALWAYS_FR = 1;      // Always call the closer first responder if possible (at least one is free)
-const int MIN_TIME = 2;       // Call zr or fr based on their total helping time            
+const int MIN_TIME = 2;       // Call zr or fr based on their total helping time    
+const int RANDOMLY = 3;       // Choose randomly what to do (if no First_Responder is free the policy behaves like ALWAYS_ZR)          
 
 // CIVILIAN/FIRST RESPONDER MOVING POLICY
 const int CLOSER_EXIT = 0;
@@ -60,18 +61,13 @@ const int RANDOM = 1;
 const int FIRES = 2; 
 
 // SET POLICIES
-int drone_decision_policy = ALWAYS_FR;
-int fr_movement_policy = FIRES;
-int civ_moving_policy = CLOSER_EXIT;
+int drone_decision_policy = RANDOMLY;
+int fr_movement_policy = RANDOM;
+int civ_moving_policy = RANDOM;
 
 // Global variables
 int casualties = 0;
 int saved = 0;
-
-// Const for model checking
-const int N_perc = 30;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
-const int T_scs = 23;                     // Time to check properties
-clock total_time;
 
 //*************************************************************************************************************************************************************************************************************
 
@@ -96,16 +92,15 @@ const int FIRST_R_BUSY_NEAR_DANGER =  10;// First Responder busy helping someone
 
 const int MAX_INT =  32767; //from doc
 
-
 // Channels
 broadcast chan init_done;
-broadcast chan helping[N_CIVILIANS];
-urgent broadcast chan FR_help_req[N_FIRST_RESPONDERS];
+chan helping[N_CIVILIANS];
+urgent chan FR_help_req[N_FIRST_RESPONDERS];
 broadcast chan saved_by_FR[N_CIVILIANS];
 broadcast chan saved_by_ZR[N_CIVILIANS];
 broadcast chan civ_dead[N_CIVILIANS]; 
-urgent broadcast chan call_zero_resp[N_CIVILIANS];
-urgent broadcast chan call_first_resp[N_CIVILIANS];
+urgent chan call_zero_resp[N_CIVILIANS];
+urgent chan call_first_resp[N_CIVILIANS];
 
 // Global arrays (built by initializer)
 pos_t exits[N_EXITS];
@@ -363,21 +358,17 @@ pos_t getAlternativeNext(pos_t next){
             }
         }
     }
-
     return alt1;
 }
 
 /*
- * Calculate next move based on a given policy. Policies implemented are FIRES and RANDOM (not verifiable queries when using random with select on edges).
- * Refer to report for further details.
+ * Calculate next move based on a given policy. Policies implemented are FIRES and RANDOM
  */ 
-void movementPolicy(){
+void movementPolicy(int step_dir){
     int tries = 0;
     bool valid_step_found = false;
      
-    int step_dir = 0;
-    if(fr_movement_policy == RANDOM){
-        
+    if(fr_movement_policy == RANDOM){   
       while (valid_step_found == false &amp;&amp; tries &lt; 8) {
         if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
             grid[pos.r][pos.c] = NONE;
@@ -435,7 +426,7 @@ void movementPolicy(){
         if (valid_step_found == false) {
             tries++;
         }
-        }
+      }
     } else if (fr_movement_policy == FIRES){
 
         if (dist(pos, target_fire) &lt; 1) {
@@ -459,16 +450,15 @@ void movementPolicy(){
             }
         }
     }
-
 }
 
-void step() {
+void step(int step_dir) {
 
     // Check if need to move
     if ((saved+casualties) == N_CIVILIANS) {
         status = FINISHED;
     } else {
-        movementPolicy();
+        movementPolicy(step_dir);
 
         update_FR_pos();
 
@@ -585,8 +575,9 @@ timeToAssist()</label>
 		<transition id="id12">
 			<source ref="id1"/>
 			<target ref="id4"/>
+			<label kind="select" x="-561" y="-42">step_dir : int[0,7]</label>
 			<label kind="guard" x="-543" y="-25">x == STEP_TIME</label>
-			<label kind="assignment" x="-535" y="-8">step(), x=0</label>
+			<label kind="assignment" x="-561" y="-8">step(step_dir), x=0</label>
 			<nail x="-399" y="-17"/>
 		</transition>
 		<transition id="id13">
@@ -637,7 +628,6 @@ int getCloserExit(pos_t pos){
             closer_exit = i;
         }
     }
-
     return closer_exit;
 }
 
@@ -664,7 +654,7 @@ int computeStatus(int px, int py){
 /*
  * Determine next move based on the given policy
  */
-void movementPolicy(){
+void movementPolicy(int step_dir){
     pos_t next_cell;
     pos_t ret_pos = OUT_OF_MAP;
     pos_t exit_cell = exits[getCloserExit(pos)];
@@ -679,16 +669,76 @@ void movementPolicy(){
             move_civ(pos, next_cell);
             pos = next_cell;
         }
+    } else if (civ_moving_policy == RANDOM) {
+      bool valid_step_found = false;
+      int tries = 0;
+      while (valid_step_found == false &amp;&amp; tries &lt; 8) {
+        if (step_dir == 0 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; cell_int(pos.r+1, pos.c) == NONE) { // Move down
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 1 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c) == NONE) { // Move up
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 2 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r, pos.c-1) == NONE) { // Move left
+            grid[pos.r][pos.c] = NONE;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 3 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r, pos.c+1) == NONE) { // Move right
+            grid[pos.r][pos.c] = NONE;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 4 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r+1, pos.c-1) == NONE) { // Move down-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 5 &amp;&amp; pos.r+1 &lt; GRID_HEIGHT &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r+1, pos.c+1) == NONE) { // Move down-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r++;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 6 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c-1 &gt;= 0 &amp;&amp; cell_int(pos.r-1, pos.c-1) == NONE) { // Move up-left
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c--;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        if (step_dir == 7 &amp;&amp; pos.r-1 &gt;= 0 &amp;&amp; pos.c+1 &lt; GRID_LENGTH &amp;&amp; cell_int(pos.r-1, pos.c+1) == NONE) { // Move up-right
+            grid[pos.r][pos.c] = NONE;
+            pos.r--;
+            pos.c++;
+            grid[pos.r][pos.c] = SURVIVOR;
+            valid_step_found = true;
+        }
+        step_dir = (step_dir+1) % 8;
+        if (valid_step_found == false) {
+            tries++;
+        }
+      }
     }
-
 }
 
 /*
  * Move and update grid
  */ 
-void step() {
+void step(int step_dir) {
 
-    movementPolicy();
+    movementPolicy(step_dir);
 
     status = computeStatus(pos.r, pos.c);
     
@@ -961,8 +1011,9 @@ void extCasualtyOccurred(){
 		<transition id="id45">
 			<source ref="id18"/>
 			<target ref="id26"/>
+			<label kind="select" x="-340" y="-280">step_dir : int[0,7]</label>
 			<label kind="guard" x="-306" y="-263">x==STEP_TIME</label>
-			<label kind="assignment" x="-340" y="-246">step(), x=0</label>
+			<label kind="assignment" x="-340" y="-246">step(step_dir), x=0</label>
 			<nail x="-170" y="-255"/>
 		</transition>
 		<transition id="id46">
@@ -1172,20 +1223,25 @@ pos_t getCloserFR(pos_t pos){
 }
 
 /*
- * Decide to ask for direct help or to call first responder
+ * Decide to ask for direct help or to call first responder (Random decision)
  */
-void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
+void decisionPolicy(int decision, pos_t civInDanger, pos_t potentialZr) {
     int dec, i, count = 0;
     pos_t closerFr;
+
     // Case in which there are no free first responders
     for(i = 0; i &lt; N_FIRST_RESPONDERS; i++){
         if(cell(pos_FRs[i]) == FIRST_R){
             count++;
         }
-    } //if no first_responder free force call zero_responder 
+    }
     if(count == 0){
         dec = 0;
-    }  // Compute the action based on the given policy   
+    } // Compute the action based on the given policy    
+
+    if(drone_decision_policy == RANDOMLY){
+        dec = decision;
+    }
     else if(drone_decision_policy == ALWAYS_ZR){
         dec = 0;
     }
@@ -1196,7 +1252,7 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
         closerFr = getCloserFR(civInDanger);
         if((dist(closerFr, civInDanger) + dist(potentialZr, closerFr) + T_FR) &lt;= (dist(potentialZr, civInDanger) + T_ZR)){
             dec = 1;
-        }else{
+        } else {
             dec = 0;
         }
     }
@@ -1204,17 +1260,15 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
     // Update status according to the result given by the action following globally-defined policy
     if(dec == 0){
         status = DRONE_ZERO_R;
-    } 
-    else{
+    } else {
         status = DRONE_FIRST_R;
     }
 }
 
-
 /*
- * Step function that follows a specified trajectory
+ * Step function that follows a specified trajectory (for random decision)
  */
-void step() {
+void step(int decision) {
     int i;
     pos_t civ_in_danger, potential_zr;
 
@@ -1223,7 +1277,7 @@ void step() {
         status = FINISHED;
     } else {
         // Do one step along the trajectory
-        k = (k + 1) % traj_l;
+        k = (k+1) % traj_l;
         pos = trajectory[k];
 
         // Explore visibility range
@@ -1234,7 +1288,7 @@ void step() {
         zr = get_civ_idx(potential_zr);
         if (civ_in_danger != OUT_OF_MAP &amp;&amp; potential_zr != OUT_OF_MAP) {
             pos_to_save = civ_in_danger;
-            decisionPolicy(civ_in_danger, potential_zr);
+            decisionPolicy(decision, civ_in_danger, potential_zr);
         }
     }
 }
@@ -1285,8 +1339,9 @@ void step() {
 		<transition id="id59">
 			<source ref="id52"/>
 			<target ref="id53"/>
+			<label kind="select" x="-731" y="-170">decision: int[0,1]</label>
 			<label kind="guard" x="-714" y="-153">x == STEP_TIME</label>
-			<label kind="assignment" x="-714" y="-136">step(), x = 0</label>
+			<label kind="assignment" x="-739" y="-136">step(decision), x=0</label>
 			<nail x="-654" y="-110"/>
 		</transition>
 		<transition id="id60">
@@ -1303,41 +1358,7 @@ system Initializer, First_Responder, Civilian, Drone;
 	<queries>
 		<query>
 			<formula/>
-			<comment>------- Mandatory Properties -------</comment>
-		</query>
-		<query>
-			<formula>E&lt;&gt; ( (saved * 100 / N_CIVILIANS) &gt;= N_perc and total_time &lt;= T_scs )</formula>
-			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 16:04:05 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>A[] ( total_time == T_scs imply (saved * 100 / N_CIVILIANS) &gt;= N_perc )</formula>
-			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:14:36 +0200">
-			</result>
-		</query>
-		<query>
-			<formula/>
-			<comment>------- Additional Properties -------</comment>
-		</query>
-		<query>
-			<formula>A[] deadlock imply ( (saved + casualties) == N_CIVILIANS )</formula>
-			<comment>System in deadlock only when a scenario is finished (every civilian is either safe or dead)</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:29:04 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>A[] ( (sum (i:civ_t) Civilian(i).Danger || Civilian(i).Helped) &gt;= (sum (j:civ_t) Civilian(j).Helping || Civilian(j).ZR_Received) + (sum(k:fr_t) First_Responder(k).FR_Received || First_Responder(k).Helping) ) </formula>
-			<comment>Number of civilians in danger always more or equal to number of busy FRs plus number of busy ZRs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:34:25 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>A[] ( (sum (i:civ_t) Civilian(i).Helped) ) == ( (sum (j:civ_t) Civilian(j).Helping) + (sum(k:fr_t) First_Responder(k).Helping) )</formula>
-			<comment>Number of civilians in helping state always equal to FR busy + ZR busy</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:39:27 +0200">
-			</result>
+			<comment>No Query can be solved due to State Space exponential growth, more info in the report.</comment>
 		</query>
 	</queries>
 </nta>

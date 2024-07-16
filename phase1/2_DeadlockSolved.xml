@@ -12,7 +12,7 @@ const int N_DRONES = 2;
 const int T_ZR = 5;                      // Time that a Zero Responder needs to help someone
 const int T_FR = 3;                      // Time that a First Responder needs to help someone
 const int T_V = 8;                       // Time before a civilian is supposed to die
-const int MAX_TRAJ = 18;                   // Max trajectory length
+const int MAX_TRAJ = 18;                 // Max trajectory length
 
 // Grid layout
 
@@ -1162,7 +1162,7 @@ pos_t getCloserFR(pos_t pos){
 }
 
 /*
- * Decide to ask for direct help or to call first responder (Random decision)
+ * Decide to ask for direct help or to call first responder
  */
 void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
     int dec, i, count = 0;
@@ -1201,9 +1201,8 @@ void decisionPolicy(pos_t civInDanger, pos_t potentialZr) {
     }
 }
 
-
 /*
- * Step function that follows a specified trajectory (for random decision)
+ * Step function that follows a specified trajectory
  */
 void step() {
     int i;
