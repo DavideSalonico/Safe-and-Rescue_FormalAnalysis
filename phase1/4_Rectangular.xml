@@ -5,7 +5,7 @@
 const int GRID_LENGTH = 18;
 const int GRID_HEIGHT = 12;
 const int N_EXITS = 14;
-const int N_FIRES = 48;
+const int N_FIRES = 44;
 const int N_CIVILIANS = 10;
 const int N_FIRST_RESPONDERS = 3;
 const int N_DRONES = 4;
