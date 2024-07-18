@@ -6,7 +6,7 @@ typedef struct { int r; int c; } pos_t;
 const int GRID_LENGTH = 18;
 const int GRID_HEIGHT = 12;
 const int N_EXITS = 9;
-const int N_FIRES = 45;
+const int N_FIRES = 41;
 const int N_CIVILIANS = 10;
 const int N_FIRST_RESPONDERS = 2;
 const int N_DRONES = 4;
