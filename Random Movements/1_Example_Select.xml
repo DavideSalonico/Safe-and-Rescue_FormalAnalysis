@@ -60,6 +60,7 @@ int civ_moving_policy = RANDOM;
 // Global variables
 int casualties = 0;
 int saved = 0;
+clock total_time;
 
 //*************************************************************************************************************************************************************************************************************
 
@@ -1230,22 +1231,23 @@ void decisionPolicy(int decision, pos_t civInDanger, pos_t potentialZr) {
     if(count == 0){
         dec = 0;
     } // Compute the action based on the given policy    
-
-    if(drone_decision_policy == RANDOMLY){
-        dec = decision;
-    }
-    else if(drone_decision_policy == ALWAYS_ZR){
-        dec = 0;
-    }
-    else if(drone_decision_policy == ALWAYS_FR){
-        dec = 1; // from the previous check at least one fr is free
-    }
-    else if(drone_decision_policy == MIN_TIME){
-        closerFr = getCloserFR(civInDanger);
-        if((dist(closerFr, civInDanger) + dist(potentialZr, closerFr) + T_FR) &lt;= (dist(potentialZr, civInDanger) + T_ZR)){
-            dec = 1;
-        } else {
+    else {
+        if(drone_decision_policy == RANDOMLY){
+            dec = decision;
+        }
+        else if(drone_decision_policy == ALWAYS_ZR){
             dec = 0;
+        }
+        else if(drone_decision_policy == ALWAYS_FR){
+            dec = 1; // from the previous check at least one fr is free
+        }
+        else if(drone_decision_policy == MIN_TIME){
+            closerFr = getCloserFR(civInDanger);
+            if((dist(closerFr, civInDanger) + dist(potentialZr, closerFr) + T_FR) &lt;= (dist(potentialZr, civInDanger) + T_ZR)){
+                dec = 1;
+            } else {
+                dec = 0;
+            }
         }
     }
     
