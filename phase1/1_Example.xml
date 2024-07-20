@@ -1294,6 +1294,7 @@ void step() {
 system Initializer, First_Responder, Civilian, Drone;
 </system>
 	<queries>
+		<option key="--diagnostic" value="2"/>
 		<query>
 			<formula/>
 			<comment>------- Mandatory Properties -------</comment>
@@ -1330,6 +1331,13 @@ system Initializer, First_Responder, Civilian, Drone;
 			<formula>A[] ( (sum (i:civ_t) Civilian(i).Helped) ) == ( (sum (j:civ_t) Civilian(j).Helping) + (sum(k:fr_t) First_Responder(k).Helping) )</formula>
 			<comment>Number of civilians in helping state always equal to FR busy + ZR busy</comment>
 			<result outcome="success" type="quality" timestamp="2024-07-13 17:21:16 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; (saved + casualties == N_CIVILIANS)</formula>
+			<comment>The scenario will eventually end</comment>
+			<result outcome="success" type="quality" timestamp="2024-07-20 10:06:50 +0200">
+				<option key="--diagnostic" value="2"/>
 			</result>
 		</query>
 	</queries>

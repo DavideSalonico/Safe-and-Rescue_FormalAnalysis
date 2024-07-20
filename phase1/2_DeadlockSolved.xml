@@ -1329,5 +1329,11 @@ system Initializer, First_Responder, Civilian, Drone;
 			<result outcome="success" type="quality" timestamp="2024-07-13 17:21:16 +0200">
 			</result>
 		</query>
+		<query>
+			<formula>E&lt;&gt; (saved + casualties == N_CIVILIANS)</formula>
+			<comment>The scenario will eventually end</comment>
+			<result outcome="success" type="quality" timestamp="2024-07-20 18:15:38 +0200">
+			</result>
+		</query>
 	</queries>
 </nta>
