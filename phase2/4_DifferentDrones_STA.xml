@@ -65,15 +65,19 @@ int fr_movement_policy = FIRES;
 int civ_moving_policy = CLOSER_EXIT;
 
 // FAIL PROBABILITIES (Stochastic Version only)
-int drone_faults[N_DRONES] = {1000, 1000, 1000};
-int civilian_ignores[N_CIVILIANS] = {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000};
+//int drone_faults[N_DRONES] = {1000, 1000, 1000};
+//int civilian_ignores[N_CIVILIANS] = {1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000};
+//int drone_faults[N_DRONES] = {3000, 3000, 3000};
+//int civilian_ignores[N_CIVILIANS] = {3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000};
+int drone_faults[N_DRONES] = {5000, 5000, 5000};
+int civilian_ignores[N_CIVILIANS] = {5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000};
 
 // Global variables
 int casualties = 0;
 int saved = 0;
 
 // Const for model checking
-const int N_perc = 50;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
+const int N_perc = 80;                    // (N% = N_save/N_CIVILIANS) percentage of all civilians to reach a safe state
 const int T_scs = 6;                     // Time to check properties
 clock total_time;
 
@@ -1291,68 +1295,77 @@ void step() {
 			<committed/>
 		</location>
 		<location id="id60" x="-297" y="-76">
-			<name x="-307" y="-110">Finish</name>
+			<name x="-331" y="-110">Finish</name>
+			<label kind="invariant" x="-307" y="-59">x&lt;=1</label>
 		</location>
 		<branchpoint id="id61" x="-688" y="102"/>
 		<branchpoint id="id62" x="-680" y="-255"/>
 		<init ref="id57"/>
 		<transition id="id63">
+			<source ref="id60"/>
+			<target ref="id60"/>
+			<label kind="guard" x="-238" y="-102">x==1</label>
+			<label kind="assignment" x="-238" y="-85">x=0</label>
+			<nail x="-246" y="-110"/>
+			<nail x="-246" y="-51"/>
+		</transition>
+		<transition id="id64">
 			<source ref="id61"/>
 			<target ref="id58"/>
 			<label kind="probability" x="-697" y="42">P_fail</label>
 		</transition>
-		<transition id="id64">
+		<transition id="id65">
 			<source ref="id61"/>
 			<target ref="id58"/>
 			<label kind="synchronisation" x="-943" y="34">call_first_resp[zr]!</label>
 			<label kind="probability" x="-748" y="110">P_succ</label>
 			<nail x="-765" y="102"/>
 		</transition>
-		<transition id="id65">
+		<transition id="id66">
 			<source ref="id62"/>
 			<target ref="id58"/>
 			<label kind="synchronisation" x="-935" y="-238">call_zero_resp[zr]!</label>
 			<label kind="probability" x="-748" y="-280">P_succ</label>
 			<nail x="-765" y="-255"/>
 		</transition>
-		<transition id="id66">
+		<transition id="id67">
 			<source ref="id62"/>
 			<target ref="id58"/>
 			<label kind="probability" x="-697" y="-204">P_fail</label>
 		</transition>
-		<transition id="id67" controllable="false">
+		<transition id="id68" controllable="false">
 			<source ref="id59"/>
 			<target ref="id61"/>
 			<label kind="guard" x="-535" y="25">status == DRONE_FIRST_R</label>
 			<label kind="assignment" x="-501" y="42">status = STEP</label>
 			<nail x="-544" y="102"/>
 		</transition>
-		<transition id="id68" controllable="false">
+		<transition id="id69" controllable="false">
 			<source ref="id59"/>
 			<target ref="id62"/>
 			<label kind="guard" x="-535" y="-221">status == DRONE_ZERO_R</label>
 			<label kind="assignment" x="-501" y="-204">status = STEP</label>
 			<nail x="-544" y="-255"/>
 		</transition>
-		<transition id="id69">
+		<transition id="id70">
 			<source ref="id59"/>
 			<target ref="id60"/>
 			<label kind="guard" x="-501" y="-102">status == FINISHED</label>
 		</transition>
-		<transition id="id70">
+		<transition id="id71">
 			<source ref="id59"/>
 			<target ref="id58"/>
 			<label kind="guard" x="-714" y="-42">status == STEP</label>
 			<nail x="-654" y="-42"/>
 		</transition>
-		<transition id="id71">
+		<transition id="id72">
 			<source ref="id58"/>
 			<target ref="id59"/>
 			<label kind="guard" x="-714" y="-153">x == STEP_TIME</label>
 			<label kind="assignment" x="-714" y="-136">step(), x = 0</label>
 			<nail x="-654" y="-110"/>
 		</transition>
-		<transition id="id72">
+		<transition id="id73">
 			<source ref="id57"/>
 			<target ref="id58"/>
 			<label kind="synchronisation" x="-1011" y="-93">init_done?</label>
@@ -1371,100 +1384,100 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>Pr[&lt;=10000] (&lt;&gt; (((saved * 100 / N_CIVILIANS) &gt;= N_perc) and total_time &lt;= T_scs) )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="interval" value="≥ 0.950056 (95% CI)" timestamp="2024-07-16 15:23:48 +0200">
+			<result outcome="success" type="interval" value="≥ 0.950056 (95% CI)" timestamp="2024-07-20 17:39:02 +0200">
 				<details>≥ 0.950056 (95% CI)</details>
 				<plot title="Probability Density Distribution" xaxis="run duration in time" yaxis="probability density">
-					<series title="density" type="b(0.000000)" color="0x0000ff" encoding="csv">6.0,4.503599627370496E15
+					<series title="density" type="b(0.000000)" color="0x0000ff" encoding="csv">4.0,4.503599627370496E15
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,4.503599627370496E15
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,4.503599627370496E15
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Probability Density Confidence Intervals" xaxis="run duration in time" yaxis="probability density">
-					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">6.0,1.0
+					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">4.0,1.0
 					</series>
-					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">6.0,0.9500559162941453
+					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">4.0,0.9500559162941453
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,4.503599627370496E15
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,4.503599627370496E15
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="probability" type="b(0.000000)" color="0x0000ff" encoding="csv">6.0,1.0
+					<series title="probability" type="b(0.000000)" color="0x0000ff" encoding="csv">4.0,1.0
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,1.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,1.0
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">6.0,1.0
+					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">4.0,1.0
 					</series>
-					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">6.0,0.9500559162941453
+					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">4.0,0.9500559162941453
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,1.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,1.0
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Cumulative Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">6.0,0.0
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">4.0,0.0
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,1.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,1.0
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Cumulative Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">6.0,0.04994408370585468
+					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">4.0,0.04994408370585468
 					</series>
-					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">6.0,0.0
+					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">4.0,0.0
 					</series>
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">6.0,0.0
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">4.0,0.0
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,1.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,1.0
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 				<plot title="Frequency Histogram" xaxis="run duration in time" yaxis="count">
-					<series title="count" type="b(0.000000)" color="0x0000ff" encoding="csv">6.0,72.0
+					<series title="count" type="b(0.000000)" color="0x0000ff" encoding="csv">4.0,72.0
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">6.0,0.0
-6.0,72.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">4.0,0.0
+4.0,72.0
 					</series>
 					<comment>Parameters: α=0.05, ε=0.05, bucket width=2.2204e-16, bucket count=1
 Runs: 72 in total, 72 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [6, 6]
-Mean estimate of displayed sample: ≈ 6</comment>
+Span of displayed sample: [4, 4]
+Mean estimate of displayed sample: ≈ 4</comment>
 				</plot>
 			</result>
 		</query>
 		<query>
 			<formula>Pr[&lt;=10000] ([]( (total_time == T_scs) imply ((saved * 100 / N_CIVILIANS) &gt;= N_perc) ))</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2024-07-16 15:24:06 +0200">
-				<details>≤ 0.0499441 (95% CI)</details>
+			<result outcome="success" type="interval" value="≥ 0.950056 (95% CI)" timestamp="2024-07-20 17:39:07 +0200">
+				<details>≥ 0.950056 (95% CI)</details>
 			</result>
 		</query>
 		<query>
