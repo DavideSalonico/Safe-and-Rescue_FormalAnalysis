@@ -1150,7 +1150,7 @@ void enter() {
     traj_l = drone_traj_lengths[id];
     N_V = drone_ranges[id];
     P_fail = drone_faults[id];
-    P_succ = 1 - P_fail;
+    P_succ = 10000 - P_fail;
 }
 
 /*
