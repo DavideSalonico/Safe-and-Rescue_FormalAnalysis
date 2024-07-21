@@ -7,7 +7,7 @@ The work has two main outputs: an Automata-based model of the scenario and a for
 
 ## File structure
 The repository is structured as follows:
-- **[Report](https://github.com/DavideSalonico/FormalMethodForRealTimeAndConcurrentSystems_Exam_AT_Polimi/main/Report.pdf](https://github.com/DavideSalonico/FormalMethodForRealTimeAndConcurrentSystems_Exam_AT_Polimi/blob/main/Report.pdf)**: Report of the work containing design choices and system analysis
+- **Report**: Report of the homework containing design choices and system analysis
 - **phase1**: XML files with the scenarios mentioned in the report for the version of the model suitable for Extensive Model Checking
 - **phase2**: XML files with the scenarios mentioned in the report for the version of the model suitable for Statistical Model Checking
 - **Random Movements**: XML files with the scenarios mentioned in the report implementing random policies (hence properties practically not verifiable)
