@@ -89,13 +89,13 @@ const int MAX_INT =  32767; //from doc
 
 // Channels
 broadcast chan init_done;
-chan helping[N_CIVILIANS];
-urgent chan FR_help_req[N_FIRST_RESPONDERS];
+broadcast chan helping[N_CIVILIANS];
+urgent broadcast chan FR_help_req[N_FIRST_RESPONDERS];
 broadcast chan saved_by_FR[N_CIVILIANS];
 broadcast chan saved_by_ZR[N_CIVILIANS];
 broadcast chan civ_dead[N_CIVILIANS]; 
-urgent chan call_zero_resp[N_CIVILIANS];
-urgent chan call_first_resp[N_CIVILIANS];
+urgent broadcast chan call_zero_resp[N_CIVILIANS];
+urgent broadcast chan call_first_resp[N_CIVILIANS];
 
 // Global arrays (built by initializer)
 pos_t exits[N_EXITS];
@@ -1298,13 +1298,13 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>E&lt;&gt; ( (saved * 100 / N_CIVILIANS) &gt;= N_perc and total_time &lt;= T_scs )</formula>
 			<comment>Q1: it is possible for a percentage N_save of all civilians to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:18:45 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:20 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( total_time == T_scs imply (saved * 100 / N_CIVILIANS) &gt;= N_perc )</formula>
 			<comment>Q2: a percentage N_save of all civilians is always guaranteed to reach a safe state within time T_scs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:19:06 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:20 +0200">
 			</result>
 		</query>
 		<query>
@@ -1314,25 +1314,25 @@ system Initializer, First_Responder, Civilian, Drone;
 		<query>
 			<formula>A[] deadlock imply ( (saved + casualties) == N_CIVILIANS )</formula>
 			<comment>System in deadlock only when a scenario is finished (every civilian is either safe or dead)</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:19:59 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:20 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( (sum (i:civ_t) Civilian(i).Danger || Civilian(i).Helped) &gt;= (sum (j:civ_t) Civilian(j).Helping || Civilian(j).ZR_Received) + (sum(k:fr_t) First_Responder(k).FR_Received || First_Responder(k).Helping) ) </formula>
 			<comment>Number of civilians in danger always more or equal to number of busy FRs plus number of busy ZRs</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:20:59 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:21 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] ( (sum (i:civ_t) Civilian(i).Helped) ) == ( (sum (j:civ_t) Civilian(j).Helping) + (sum(k:fr_t) First_Responder(k).Helping) )</formula>
 			<comment>Number of civilians in helping state always equal to FR busy + ZR busy</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-13 17:21:16 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:21 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; (saved + casualties == N_CIVILIANS)</formula>
 			<comment>The scenario will eventually end</comment>
-			<result outcome="success" type="quality" timestamp="2024-07-20 18:15:38 +0200">
+			<result outcome="success" type="quality" timestamp="2024-07-21 13:46:21 +0200">
 			</result>
 		</query>
 	</queries>

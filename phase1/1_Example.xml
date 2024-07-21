@@ -91,13 +91,13 @@ const int MAX_INT =  32767; //from doc
 
 // Channels
 broadcast chan init_done;
-chan helping[N_CIVILIANS];
-urgent chan FR_help_req[N_FIRST_RESPONDERS];
+broadcast chan helping[N_CIVILIANS];
+urgent broadcast chan FR_help_req[N_FIRST_RESPONDERS];
 broadcast chan saved_by_FR[N_CIVILIANS];
 broadcast chan saved_by_ZR[N_CIVILIANS];
 broadcast chan civ_dead[N_CIVILIANS]; 
-urgent chan call_zero_resp[N_CIVILIANS];
-urgent chan call_first_resp[N_CIVILIANS];
+urgent broadcast chan call_zero_resp[N_CIVILIANS];
+urgent broadcast chan call_first_resp[N_CIVILIANS];
 
 // Global arrays (built by initializer)
 pos_t exits[N_EXITS];
